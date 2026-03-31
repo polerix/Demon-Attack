@@ -148,6 +148,35 @@
 
         #game-svg { width: 100%; height: 100%; background: #000; }
 
+        .damage-flash {
+            position: absolute; top:0; left:0; width:100%; height:100%;
+            background-size: cover; background-position: center; pointer-events: none;
+            opacity: 0; z-index: 10; mix-blend-mode: multiply;
+        }
+        .damage-flash.animate {
+            animation: flashFade 0.6s ease-out forwards;
+        }
+        @keyframes flashFade {
+            0% { opacity: 0.9; }
+            100% { opacity: 0; }
+        }
+
+        .wave-announcement {
+            position: absolute; top: 35%; width: 100%; text-align: center;
+            font-family: 'GyozaDEMO', sans-serif; font-size: 8rem; color: var(--primary-red);
+            text-shadow: 0 0 20px #FF0000; opacity: 0; pointer-events: none; z-index: 20;
+            transform: translateY(-300px) scale(0.5);
+        }
+        .wave-announcement.animate {
+            animation: dropZoom 2.8s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+        }
+        @keyframes dropZoom {
+            0% { transform: translateY(-300px) scale(0.5); opacity: 0; }
+            15% { transform: translateY(0) scale(1.0); opacity: 1; filter: drop-shadow(0 0 30px #FF0000); }
+            75% { transform: translateY(0) scale(1.0); opacity: 1; filter: drop-shadow(0 0 30px #FF0000); }
+            100% { transform: translateY(0) scale(4.0); opacity: 0; }
+        }
+
         /* Fullscreen button specific */
         #btn-fullscreen {
             position: absolute;
@@ -197,6 +226,8 @@
     </div>
 
     <div id="screen-game" class="screen hidden">
+        <div id="damage-overlay" class="damage-flash"></div>
+        <div id="wave-announcement" class="wave-announcement">WAVE 1</div>
         <div id="game-ui">
             <div class="ui-block">
                 <div class="ui-label" id="ui-score-label"></div>
@@ -894,6 +925,17 @@
             }
         }
 
+        function triggerDamageFlash(livesLeft) {
+            const overlay = document.getElementById('damage-overlay');
+            let imgIndex = 3 - livesLeft;
+            if (imgIndex < 1) imgIndex = 1;
+            if (imgIndex > 3) imgIndex = 3;
+            overlay.style.backgroundImage = `url('SVG/ui-damage-0${imgIndex}.png')`;
+            overlay.classList.remove('animate');
+            void overlay.offsetWidth; // Reflow to restart CSS animation
+            overlay.classList.add('animate');
+        }
+
         function checkCollisions() {
             // Projectiles vs Enemies/Pods
             Array.from(bulletPool.active).forEach(b => {
@@ -951,6 +993,7 @@
                                     setTimeout(() => ship.showShield(false), 500);
                                 } else {
                                     gameState.lives--;
+                                    triggerDamageFlash(gameState.lives);
                                     createExplosion(ship.x, ship.y);
                                     if (gameState.lives <= 0) gameOver();
                                     else ship.shields = 100; // Reset shields on life loss
@@ -994,6 +1037,7 @@
                     p.y < d.y + d.height && p.y + p.height > d.y) {
                     if (!d.isBoss) d.markedForDeletion = true; // Boss crushes player, lives on.
                     gameState.lives--;
+                    triggerDamageFlash(gameState.lives);
                     createExplosion(p.x, p.y);
                     if (gameState.lives <= 0) gameOver();
                 }
@@ -1017,6 +1061,15 @@
                 p.subLevel = Math.min(3, Math.floor((wave - 10) / 2) + 1);
             }
             p.updateLevelSprites();
+
+            const waveLabel = document.getElementById('wave-announcement');
+            waveLabel.innerText = wave >= 10 ? "WARNING: DREADNAUGHT" : "WAVE " + wave;
+            waveLabel.style.fontSize = wave >= 10 ? '5rem' : '8rem';
+            if (wave >= 10) waveLabel.style.color = '#FFFFFF'; // White for boss
+            else waveLabel.style.color = 'var(--primary-red)';
+            waveLabel.classList.remove('animate');
+            void waveLabel.offsetWidth; 
+            waveLabel.classList.add('animate');
 
             // -- Enemy Wave Compositions --
             if (wave === 1) {
