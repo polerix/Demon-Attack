@@ -214,6 +214,9 @@
         </div>
         
         <svg id="game-svg" viewBox="0 0 800 600" preserveAspectRatio="xMidYMid slice">
+            <defs>
+                <circle id="spark" cx="0" cy="0" r="3" fill="#FFAA00" filter="drop-shadow(0 0 5px #FFAA00)" />
+            </defs>
             <g id="bg-group"></g>
             <g id="world-group"></g>
         </svg>
@@ -297,7 +300,37 @@
         };
 
         let keys = { ArrowLeft: false, ArrowRight: false, Space: false };
-        let mobileInputs = { left: false, right: false, fire: false };
+        const mobileInputs = { left: false, right: false, fire: false };
+
+        class ObjectPool {
+            constructor(createFunc, initialSize = 50) {
+                this.createFunc = createFunc;
+                this.pool = [];
+                this.active = [];
+                for(let i = 0; i < initialSize; i++) {
+                    this.pool.push(this.createFunc());
+                }
+            }
+            get() {
+                let obj = this.pool.length > 0 ? this.pool.pop() : this.createFunc();
+                this.active.push(obj);
+                return obj;
+            }
+            release(obj) {
+                const index = this.active.indexOf(obj);
+                if (index > -1) {
+                    this.active.splice(index, 1);
+                    this.pool.push(obj);
+                }
+            }
+            reset() {
+                while(this.active.length > 0) {
+                    let obj = this.active.pop();
+                    if (obj.disable) obj.disable();
+                    this.pool.push(obj);
+                }
+            }
+        }
 
         let entities = {
             player: null,
@@ -569,7 +602,7 @@
                 
                 // Primary Fire
                 if (firing && this.cooldown <= 0) {
-                    entities.bullets.push(new Projectile(this.x + this.width / 2 - 5, this.y - 15, 'terran', 'bullet'));
+                    bulletPool.get().init(this.x + this.width / 2 - 5, this.y - 15, 'terran', 'bullet');
                     playSound('shoot');
                     this.cooldown = this.level === 3 ? 0.12 : 0.25; 
                 }
@@ -577,7 +610,7 @@
                 // Missile Fire
                 if (launchMissile && this.cooldown <= 0 && this.missiles > 0) {
                     const mType = this.missileType === 'mini' ? 'mini_missile' : 'missile';
-                    entities.bullets.push(new Projectile(this.x + this.width / 2 - 5, this.y - 20, 'terran', mType));
+                    bulletPool.get().init(this.x + this.width / 2 - 5, this.y - 20, 'terran', mType);
                     this.missiles--;
                     this.cooldown = 0.5;
                 }
@@ -611,11 +644,11 @@
                     // Check for fighters or dreadnaughts to use missiles
                     const highPriority = entities.demons.some(d => d.rank !== 'scout' && d.y > 0);
                     if (highPriority && this.missiles > 0) {
-                        entities.bullets.push(new Projectile(this.x + this.width / 2 - 5, this.y - 10, 'terran', 'mini_missile'));
+                        bulletPool.get().init(this.x + this.width / 2 - 5, this.y - 10, 'terran', 'mini_missile');
                         this.missiles--;
                         this.cooldown = 1.2;
                     } else {
-                        entities.bullets.push(new Projectile(this.x + this.width / 2 - 5, this.y - 10, 'terran', 'bullet'));
+                        bulletPool.get().init(this.x + this.width / 2 - 5, this.y - 10, 'terran', 'bullet');
                         this.cooldown = 0.7; 
                     }
                 }
@@ -697,41 +730,201 @@
             }
         }
 
+        class DreadnaughtBoss extends Entity {
+            constructor(wave) {
+                super('boss_' + Math.random(), GAME_WIDTH / 2 - 60, -120, 120, 120);
+                this.isBoss = true;
+                this.hpMulti = wave / 10;
+                
+                this.updateSprites({
+                    base: Sprites['demon_dreadnaught'],
+                    shield: Sprites['demon_dreadnaught_shield'],
+                    shadow: Sprites['demon_dreadnaught_shadow']
+                });
+                
+                this.parts = [
+                    { id: 'left', active: true, hp: 300 * this.hpMulti, x: 10, y: 30, w: 30, h: 60 },
+                    { id: 'right', active: true, hp: 300 * this.hpMulti, x: 80, y: 30, w: 30, h: 60 },
+                    { id: 'core', active: true, hp: 800 * this.hpMulti, x: 45, y: 50, w: 30, h: 50 }
+                ];
+
+                this.speedX = 60;
+                this.speedY = 20; 
+                this.fireCooldown = 1.0;
+            }
+
+            takeDamage(part, damage) {
+                if (part.id === 'core' && (this.parts[0].active || this.parts[1].active)) return false; // Core immune until wings drop
+                
+                part.hp -= damage;
+                this.flash();
+                
+                if (part.hp <= 0 && part.active) {
+                    part.active = false;
+                    for(let i=0; i<3; i++) createExplosion(this.x + part.x + 15, this.y + part.y + 15);
+                    if (part.id !== 'core') this.speedX *= 1.3;
+                }
+                
+                if (!this.parts[2].active) {
+                    this.markedForDeletion = true;
+                    gameState.score += 5000;
+                    for(let i=0; i<8; i++) setTimeout(() => createExplosion(this.x + Math.random()*120, this.y + Math.random()*120), i*100);
+                }
+                return true;
+            }
+
+            flash() {
+                this.mainGroup.style.opacity = '0.3';
+                setTimeout(() => this.mainGroup.style.opacity = '1', 80);
+            }
+
+            update(dt) {
+                if (this.y < 20) {
+                    this.y += this.speedY * dt;
+                } else {
+                    this.x += this.speedX * dt;
+                    if (this.x < 10 || this.x > GAME_WIDTH - 130) this.speedX *= -1;
+                }
+                
+                this.fireCooldown -= dt;
+                if (this.fireCooldown <= 0 && this.y > 0) {
+                    if (this.parts[0].active || this.parts[1].active) {
+                        this.fireCooldown = 0.8;
+                        if (this.parts[0].active) bulletPool.get().init(this.x + 25, this.y + 90, 'demon', 'bullet');
+                        if (this.parts[1].active) bulletPool.get().init(this.x + 95, this.y + 90, 'demon', 'bullet');
+                        playSound('shoot');
+                    } else {
+                        // Phase 2
+                        this.fireCooldown = 0.25;
+                        bulletPool.get().init(this.x + 60, this.y + 100, 'demon', 'bullet');
+                        playSound('shoot');
+                        if (Math.random() > 0.4) particlePool.get().init(this.x + 25, this.y + 40);
+                        if (Math.random() > 0.4) particlePool.get().init(this.x + 95, this.y + 40);
+                    }
+                }
+                this.updateTransform();
+            }
+        }
+
         class Projectile extends Entity {
-            constructor(x, y, faction, type) {
-                super('proj_' + Math.random(), x, y, 10, 20);
+            constructor() {
+                super('proj_' + Math.random(), 0, 0, 10, 20);
+                this.element.style.display = 'none';
+            }
+
+            init(x, y, faction, type) {
+                this.x = x;
+                this.y = y;
                 this.faction = faction;
                 this.type = type;
                 this.speed = (faction === 'terran') ? -650 : 450;
+                this.markedForDeletion = false;
                 
                 this.updateSprites({
                     base: Sprites[`${faction}_${type}`],
                     shadow: (faction === 'terran' && type === 'missile') ? Sprites['terran_missile_shadow'] : null
                 });
+                this.element.style.display = 'block';
+                this.updateTransform();
+            }
+
+            disable() {
+                this.element.style.display = 'none';
+                this.markedForDeletion = true;
+                bulletPool.release(this);
             }
 
             update(dt) {
+                if (this.markedForDeletion) return;
                 this.y += this.speed * dt;
                 if (this.type === 'missile') this.z = Math.sin(Date.now() / 150) * 15;
                 this.updateTransform();
-                if (this.y < -100 || this.y > GAME_HEIGHT + 100) this.markedForDeletion = true;
+                if (this.y < -100 || this.y > GAME_HEIGHT + 100) this.disable();
             }
         }
 
-        function createExplosion(x, y) { playSound('explosion'); }
+        class Particle {
+            constructor() {
+                this.element = document.createElementNS("http://www.w3.org/2000/svg", "use");
+                this.element.setAttribute("href", "#spark");
+                this.element.style.display = 'none';
+                worldGroup.appendChild(this.element);
+            }
+            init(x, y) {
+                this.x = x;
+                this.y = y;
+                this.vx = (Math.random() - 0.5) * 500;
+                this.vy = (Math.random() - 0.5) * 500;
+                this.life = 0.3 + Math.random() * 0.4;
+                this.maxLife = this.life;
+                this.isActive = true;
+                this.element.style.display = 'block';
+                this.updateTransform();
+            }
+            disable() {
+                this.element.style.display = 'none';
+                this.isActive = false;
+                particlePool.release(this);
+            }
+            update(dt) {
+                if (!this.isActive) return;
+                this.life -= dt;
+                this.x += this.vx * dt;
+                this.y += this.vy * dt;
+                this.vx *= 0.90; // Apply drag
+                this.vy *= 0.90;
+                this.updateTransform();
+                if (this.life <= 0) this.disable();
+            }
+            updateTransform() {
+                const scale = this.life / this.maxLife;
+                this.element.setAttribute("transform", `translate(${this.x}, ${this.y}) scale(${scale})`);
+                this.element.setAttribute("opacity", scale.toString());
+            }
+        }
+
+        const bulletPool = new ObjectPool(() => new Projectile(), 200);
+        const particlePool = new ObjectPool(() => new Particle(), 150);
+
+        function createExplosion(x, y) { 
+            playSound('explosion'); 
+            const count = 10 + Math.random() * 10;
+            for(let i=0; i<count; i++) {
+                particlePool.get().init(x, y);
+            }
+        }
 
         function checkCollisions() {
             // Projectiles vs Enemies/Pods
-            entities.bullets.forEach(b => {
+            Array.from(bulletPool.active).forEach(b => {
                 // vs Demons
                 entities.demons.forEach(d => {
-                    if (!b.markedForDeletion && !d.markedForDeletion && b.faction !== 'demon' &&
-                        b.x < d.x + d.width && b.x + b.width > d.x &&
-                        b.y < d.y + d.height && b.y + b.height > d.y) {
-                        b.markedForDeletion = true;
-                        d.markedForDeletion = true;
-                        gameState.score += 10 * gameState.wave;
-                        createExplosion(d.x, d.y);
+                    if (b.markedForDeletion || d.markedForDeletion || b.faction === 'demon') return;
+
+                    if (d.isBoss) {
+                        for (let p of d.parts) {
+                            if (!p.active) continue;
+                            let px = d.x + p.x;
+                            let py = d.y + p.y;
+                            if (b.x < px + p.w && b.x + b.width > px &&
+                                b.y < py + p.h && b.y + b.height > py) {
+                                
+                                let damage = b.type.includes('missile') ? 50 : 20;
+                                let hitReg = d.takeDamage(p, damage);
+                                b.disable(); // Consume bullet
+                                if (hitReg) createExplosion(b.x, b.y); // impact spark
+                                break;
+                            }
+                        }
+                    } else {
+                        // Standard Demon
+                        if (b.x < d.x + d.width && b.x + b.width > d.x &&
+                            b.y < d.y + d.height && b.y + b.height > d.y) {
+                            b.disable();
+                            d.markedForDeletion = true;
+                            gameState.score += 10 * gameState.wave;
+                            createExplosion(d.x, d.y);
+                        }
                     }
                 });
 
@@ -739,7 +932,7 @@
                 entities.pods.forEach(p => {
                     if (!b.markedForDeletion && b.x < p.x + p.width && b.x + b.width > p.x &&
                         b.y < p.y + p.height && b.y + b.height > p.y) {
-                        b.markedForDeletion = true;
+                        b.disable();
                         p.triggerTimer();
                     }
                 });
@@ -750,7 +943,7 @@
                         if (ship && !b.markedForDeletion &&
                             b.x < ship.x + ship.width && b.x + b.width > ship.x &&
                             b.y < ship.y + ship.height && b.y + b.height > ship.y) {
-                            b.markedForDeletion = true;
+                            b.disable();
                             if (ship === entities.player) {
                                 if (ship.shields > 0) {
                                     ship.shields -= 20;
@@ -799,7 +992,7 @@
                 if (!d.markedForDeletion &&
                     p.x < d.x + d.width && p.x + p.width > d.x &&
                     p.y < d.y + d.height && p.y + p.height > d.y) {
-                    d.markedForDeletion = true;
+                    if (!d.isBoss) d.markedForDeletion = true; // Boss crushes player, lives on.
                     gameState.lives--;
                     createExplosion(p.x, p.y);
                     if (gameState.lives <= 0) gameOver();
@@ -849,9 +1042,8 @@
                 const fighters = Math.min(5, wave - 8);
                 for(let i = 0; i < scouts; i++) entities.demons.push(new Demon(Math.random() * (GAME_WIDTH - 60), Math.random() * 100 + 20, wave));
                 for(let i = 0; i < fighters; i++) entities.demons.push(new Demon(Math.random() * (GAME_WIDTH - 60), Math.random() * 100 + 20, 8)); // Fighters
-                
-                // Demon Dreadnaught
-                entities.demons.push(new Demon(GAME_WIDTH / 2 - 30, 10, 10)); // Wave 10+ is dreadnaught
+                // Demon Dreadnaught Boss
+                entities.demons.push(new DreadnaughtBoss(wave));
             }
 
             waveUI.innerText = "Wave: " + gameState.wave;
@@ -873,13 +1065,13 @@
             entities.bg.update(dt, entities.player.bankAngle);
             entities.player.update(dt);
             entities.escorts.forEach(e => e.update(dt, entities.player.x, entities.player.y));
-            entities.bullets.forEach(b => b.update(dt));
+            Array.from(bulletPool.active).forEach(b => b.update(dt));
+            Array.from(particlePool.active).forEach(p => p.update(dt));
             entities.demons.forEach(d => d.update(dt));
             entities.pods.forEach(p => p.update(dt));
 
             checkCollisions();
 
-            entities.bullets = entities.bullets.filter(b => { if(b.markedForDeletion) { b.remove(); return false; } return true; });
             entities.demons = entities.demons.filter(d => { if(d.markedForDeletion) { d.remove(); return false; } return true; });
             entities.pods = entities.pods.filter(p => { if(p.markedForDeletion) { p.remove(); return false; } return true; });
 
@@ -924,7 +1116,8 @@
 
         function startGameLogic() {
             worldGroup.innerHTML = '';
-            entities.bullets = [];
+            bulletPool.reset();
+            particlePool.reset();
             entities.demons = [];
             entities.escorts = [];
             entities.pods = [];
