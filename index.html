@@ -6,10 +6,22 @@
     <title>Demon Attack - SVG Edition</title>
     <style>
         :root {
-            --bg-color: #050510;
-            --text-color: #00ffcc;
-            --btn-bg: #112244;
-            --btn-hover: #224488;
+            --bg-color: #000000;
+            --primary-red: #FF0000;
+            --shadow-red: #880000;
+            --orange: #FF6600;
+            --blue: #0066FF;
+            --text-color: #FFFFFF;
+            --border-width: 4px;
+        }
+
+        @font-face {
+            font-family: 'GyozaDEMO';
+            src: local('GyozaDEMO'), local('Arial Bold');
+        }
+        @font-face {
+            font-family: 'VientlyFlustern';
+            src: local('Viently Flustin Trial'), local('Arial');
         }
 
         body, html {
@@ -19,12 +31,12 @@
             height: 100%;
             background-color: var(--bg-color);
             color: var(--text-color);
-            font-family: 'Courier New', Courier, monospace;
+            font-family: 'VientlyFlustern', 'Arial', sans-serif;
             overflow: hidden;
-            touch-action: none; /* Prevent scroll on mobile */
+            touch-action: none;
         }
 
-        /* Screen Management */
+        /* Brutalist Screen Management */
         .screen {
             position: absolute;
             top: 0;
@@ -35,140 +47,106 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            transition: opacity 0.3s ease;
+            background: linear-gradient(135deg, #000 0%, #110000 100%);
+            border: var(--border-width) solid var(--primary-red);
+            box-sizing: border-box;
         }
 
-        .hidden {
-            opacity: 0;
-            pointer-events: none;
-            z-index: -1;
-        }
-
-        .active {
-            opacity: 1;
-            z-index: 10;
-        }
+        .hidden { display: none; }
+        .active { display: flex; z-index: 10; }
 
         h1 {
-            font-size: 3rem;
+            font-family: 'GyozaDEMO', sans-serif;
+            font-size: 5rem;
+            color: var(--primary-red);
+            text-shadow: 4px 4px 0 var(--shadow-red);
+            margin: 0;
             text-transform: uppercase;
-            letter-spacing: 5px;
-            text-shadow: 0 0 10px var(--text-color);
-            margin-bottom: 2rem;
-            text-align: center;
         }
 
-        /* UI Elements */
-        button {
-            background: var(--btn-bg);
-            color: var(--text-color);
-            border: 2px solid var(--text-color);
-            padding: 15px 30px;
-            font-size: 1.5rem;
+        /* Brutalist UI Elements */
+        .btn-svg {
+            background: none;
+            border: var(--border-width) solid var(--primary-red);
+            padding: 0;
             cursor: pointer;
+            width: 250px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.1s;
             margin: 10px;
-            text-transform: uppercase;
-            font-family: inherit;
-            transition: all 0.2s;
-            box-shadow: 0 0 5px var(--text-color);
+            background-color: #000;
         }
 
-        button:hover {
-            background: var(--btn-hover);
-            box-shadow: 0 0 15px var(--text-color);
-        }
+        .btn-svg svg { width: 100%; height: 100%; }
+        .btn-svg:hover { background-color: var(--primary-red); filter: invert(1); }
+        .btn-svg:active { transform: scale(0.95); }
 
         .panel {
-            background: rgba(0, 0, 0, 0.8);
-            border: 1px solid var(--text-color);
-            padding: 20px;
-            border-radius: 10px;
-            width: 80%;
-            max-width: 600px;
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
-
-        .control-group {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        input[type="range"] {
-            width: 60%;
-        }
-        
-        textarea {
-            width: 100%;
-            height: 100px;
             background: #000;
-            color: #0f0;
-            border: 1px solid var(--text-color);
-            font-family: monospace;
-            padding: 5px;
-            box-sizing: border-box;
+            border: var(--border-width) solid var(--primary-red);
+            padding: 30px;
+            width: 85%;
+            max-width: 700px;
+            box-shadow: 10px 10px 0 var(--shadow-red);
         }
 
         /* Game UI Layer */
         #game-ui {
             position: absolute;
-            top: 10px;
-            left: 10px;
-            right: 10px;
+            top: 20px; left: 20px; right: 20px;
             display: flex;
             justify-content: space-between;
-            font-size: 1.5rem;
-            font-weight: bold;
+            align-items: flex-start;
             z-index: 5;
             pointer-events: none;
+        }
+
+        .ui-block {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            background: rgba(0,0,0,0.8);
+            border-left: var(--border-width) solid var(--primary-red);
+            padding: 10px;
+        }
+
+        .ui-label { height: 20px; }
+        .ui-value { font-size: 1.8rem; font-weight: bold; color: var(--primary-red); }
+
+        .meter-container {
+            width: 150px;
+            height: 15px;
+            border: 2px solid var(--primary-red);
+            background: #220000;
+        }
+        .meter-fill {
+            height: 100%;
+            background: var(--blue);
+            width: 100%;
+            transition: width 0.3s;
         }
 
         /* Mobile Controls */
         #mobile-controls {
             position: absolute;
-            bottom: 20px;
-            left: 0;
-            width: 100%;
-            display: none; /* Shown via JS */
-            justify-content: space-between;
-            padding: 0 20px;
-            box-sizing: border-box;
-            z-index: 5;
+            bottom: 30px; left: 0; width: 100%;
+            display: none; justify-content: space-between;
+            padding: 0 40px; box-sizing: border-box; z-index: 5;
         }
-
-        .d-pad, .action-pad {
-            display: flex;
-            gap: 10px;
-        }
-
         .m-btn {
-            width: 60px;
-            height: 60px;
-            background: rgba(17, 34, 68, 0.6);
-            border: 2px solid var(--text-color);
-            border-radius: 50%;
-            color: var(--text-color);
-            font-size: 24px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            user-select: none;
-            cursor: pointer;
+            width: 80px; height: 80px;
+            background: #000;
+            border: var(--border-width) solid var(--primary-red);
+            color: var(--primary-red);
+            font-size: 30px; font-weight: bold;
+            display: flex; align-items: center; justify-content: center;
         }
-        
-        .m-btn:active {
-            background: rgba(34, 68, 136, 0.8);
-        }
+        .m-btn:active { background: var(--primary-red); color: #000; }
 
-        /* SVG Game Canvas */
-        #game-svg {
-            width: 100%;
-            height: 100%;
-            display: block;
-            background: radial-gradient(circle at center, #1a0033 0%, #000000 100%);
-        }
+        #game-svg { width: 100%; height: 100%; background: #000; }
 
         /* Fullscreen button specific */
         #btn-fullscreen {
@@ -202,66 +180,50 @@
     </svg>
 
     <div id="screen-landing" class="screen active">
-        <h1>Demon Attack<br><span style="font-size: 1.2rem; color: #fff;">SVG Overdrive</span></h1>
-        <button id="btn-start">Start Game</button>
-        <button id="btn-settings">Settings & Shaders</button>
+        <div id="main-logo" style="width:600px; height:200px;"></div>
+        <button id="btn-start" class="btn-svg"></button>
+        <button id="btn-settings" class="btn-svg"></button>
     </div>
 
     <div id="screen-settings" class="screen hidden">
         <div class="panel">
-            <h2>System Settings</h2>
-            
+            <h2 style="color:var(--primary-red); font-family:'GyozaDEMO';">SYSTEM CONFIG</h2>
             <div class="control-group">
-                <label>Master Volume:</label>
+                <div class="ui-label" id="label-music" style="width:100px;"></div>
                 <input type="range" id="vol-slider" min="0" max="100" value="50">
             </div>
-
-            <h3>SVG Transformation Shaders</h3>
-            <div class="control-group">
-                <label>Select Shader:</label>
-                <select id="shader-select" style="padding:5px; font-family:inherit; background:#112; color:#0fc; border:1px solid #0fc;">
-                    <option value="none">None (Raw SVG)</option>
-                    <option value="shader-glow">Neon Glow</option>
-                    <option value="shader-glitch">Scanline Glitch</option>
-                    <option value="shader-matrix">Matrix Green</option>
-                    <option value="shader-custom">Custom Import</option>
-                </select>
-            </div>
-            
-            <div id="custom-shader-box" style="display:none;">
-                <label>Import Custom &lt;filter&gt; Code (Must have id="shader-custom"):</label>
-                <textarea id="custom-shader-input">
-<filter id="shader-custom">
-    <feColorMatrix type="hueRotate" values="90" />
-</filter>
-                </textarea>
-                <button id="btn-apply-shader" style="font-size:1rem; padding:5px;">Apply Custom</button>
-            </div>
-
-            <button id="btn-close-settings">Back to Menu</button>
+            <button id="btn-close-settings" class="btn-svg"></button>
         </div>
     </div>
 
     <div id="screen-game" class="screen hidden">
-        <button id="btn-fullscreen">[ ]</button>
         <div id="game-ui">
-            <div id="score-display">Score: 0</div>
-            <div id="wave-display">Wave: 1</div>
-            <div id="lives-display">Lives: 3</div>
+            <div class="ui-block">
+                <div class="ui-label" id="ui-score-label"></div>
+                <div id="score-display" class="ui-value">0</div>
+            </div>
+            <div class="ui-block">
+                <div class="ui-label" id="ui-wave-label"></div>
+                <div id="wave-display" class="ui-value">1</div>
+            </div>
+            <div class="ui-block">
+                <div class="ui-label" id="ui-shield-label"></div>
+                <div class="meter-container"><div id="shield-meter" class="meter-fill"></div></div>
+                <div id="missile-count" style="color:var(--orange); font-weight:bold; margin-top:5px;">MISSILES: 0</div>
+            </div>
         </div>
         
         <svg id="game-svg" viewBox="0 0 800 600" preserveAspectRatio="xMidYMid slice">
+            <g id="bg-group"></g>
             <g id="world-group"></g>
         </svg>
 
         <div id="mobile-controls">
             <div class="d-pad">
-                <div class="m-btn" id="m-left">◀</div>
-                <div class="m-btn" id="m-right">▶</div>
+                <div class="m-btn" id="m-left">L</div>
+                <div class="m-btn" id="m-right">R</div>
             </div>
-            <div class="action-pad">
-                <div class="m-btn" id="m-fire">A</div>
-            </div>
+            <div class="action-pad"><div class="m-btn" id="m-fire">F</div></div>
         </div>
     </div>
 
@@ -339,210 +301,600 @@
 
         let entities = {
             player: null,
+            escorts: [],
             demons: [],
             bullets: [],
-            particles: []
+            pods: [],
+            particles: [],
+            bg: null
+        };
+        
+        const Sprites = {
+            terran_scout: '', terran_scout_shield: '', terran_scout_shadow: '',
+            terran_fighter: '', terran_fighter_shield: '', terran_fighter_shadow: '',
+            terran_dreadnought: '', terran_dreadnought_shield: '', terran_dreadnaught_shadow: '',
+            terran_bullet: '', terran_missile: '', terran_missile_shadow: '',
+            demon_scout: '', demon_scout_shield: '', demon_scout_shadow: '',
+            demon_fighter: '', demon_fighter_shield: '', demon_fighter_shadow: '',
+            demon_dreadnaught: '', demon_dreadnaught_shield: '', demon_dreadnaught_shadow: '',
+            demon_bullet: '', demon_missile: '',
+            terran_mini_missile: '', terran_mini_missile_shadow: '',
+            terran_missile_pod: '', terran_power_pod: '',
+            terran_pod_shield: '', terran_pod_shadow: '',
+            ui_logo: '', ui_btn_start: '', ui_btn_settings: '',
+            ui_label_score: '', ui_label_wave: '', ui_label_shield: '', ui_label_music: ''
         };
 
-        // --- SVG Sprites ---
-        // Generates the SVG strings for game objects
-        const Sprites = {
-            player: `<polygon points="20,0 40,30 30,30 30,40 10,40 10,30 0,30" fill="#00ffff" />`,
-            demon: `<path d="M20,0 L40,15 L30,25 L35,40 L20,30 L5,40 L10,25 L0,15 Z" fill="#ff0044" stroke="#ffaa00" stroke-width="2"/>`,
-            bullet: `<rect x="0" y="0" width="4" height="15" fill="#ffff00" />`
-        };
+        async function loadAssets() {
+            const assets = [
+                { id: 'terran_scout', url: 'svg/terran_Scout.svg' },
+                { id: 'terran_scout_shield', url: 'svg/terran_scout_shield.svg' },
+                { id: 'terran_scout_shadow', url: 'svg/terran_Scout_Shadow.svg' },
+                { id: 'terran_fighter', url: 'svg/terran_Fighter.svg' },
+                { id: 'terran_fighter_shield', url: 'svg/terran_Fighter_Shield.svg' },
+                { id: 'terran_fighter_shadow', url: 'svg/terran_Fighter_Shadow.svg' },
+                { id: 'terran_dreadnought', url: 'svg/terran_dreadnought.svg' },
+                { id: 'terran_dreadnought_shield', url: 'svg/terran_Dreadnought_Shield.svg' },
+                { id: 'terran_dreadnaught_shadow', url: 'svg/terran_Dreadnaught_Shadow.svg' },
+                { id: 'terran_bullet', url: 'svg/terran_Bullet.svg' },
+                { id: 'terran_missile', url: 'svg/terran_Missile.svg' },
+                { id: 'terran_missile_shadow', url: 'svg/terran_Missile_Shadow.svg' },
+                { id: 'terran_mini_missile', url: 'svg/terran_Mini_Missile.svg' },
+                { id: 'terran_mini_missile_shadow', url: 'svg/terran_Mini_Missile_Shadow.svg' },
+                { id: 'terran_missile_pod', url: 'svg/terran_Missile_Pod.svg' },
+                { id: 'terran_power_pod', url: 'svg/terran_Power_Pod.svg' },
+                { id: 'terran_pod_shield', url: 'svg/terran_Pod_Shield.svg' },
+                { id: 'terran_pod_shadow', url: 'svg/terran_Pod_Shadow.svg' },
+                { id: 'demon_scout', url: 'svg/demon_Scout.svg' },
+                { id: 'demon_scout_shield', url: 'svg/demon_Scout_Shield.svg' },
+                { id: 'demon_scout_shadow', url: 'svg/demon_scout_Shadow.svg' },
+                { id: 'demon_fighter', url: 'svg/demon_Fighter.svg' },
+                { id: 'demon_fighter_shield', url: 'svg/demon_Fighter_Shield.svg' },
+                { id: 'demon_fighter_shadow', url: 'svg/demon_Fighter_Shadow.svg' },
+                { id: 'demon_dreadnaught', url: 'svg/demon_dreadnaught.svg' },
+                { id: 'demon_dreadnaught_shield', url: 'svg/demon_Dreadnaught_Shield.svg' },
+                { id: 'demon_dreadnaught_shadow', url: 'svg/demon_Dreadnaught_Shadow.svg' },
+                { id: 'demon_bullet', url: 'svg/demon_Bullet.svg' },
+                { id: 'demon_missile', url: 'svg/demon_Missile.svg' },
+                { id: 'ui_logo', url: 'svg/ui-Demon-Attack.svg' },
+                { id: 'ui_btn_start', url: 'svg/ui_Start_Game_W.svg' },
+                { id: 'ui_btn_settings', url: 'svg/ui_Settings_W.svg' },
+                { id: 'ui_label_score', url: 'svg/ui_Bonus_W.svg' }, 
+                { id: 'ui_label_wave', url: 'svg/ui_Level_Up_W.svg' },
+                { id: 'ui_label_shield', url: 'svg/ui_Shields.svg' },
+                { id: 'ui_label_music', url: 'svg/ui_Music_W.svg' }
+            ];
+
+            try {
+                const loadPromises = assets.map(async (asset) => {
+                    const response = await fetch(asset.url);
+                    if (!response.ok) throw new Error(`Failed to load ${asset.url}`);
+                    const svgText = await response.text();
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(svgText, 'image/svg+xml');
+                    const svgEl = doc.querySelector('svg');
+                    Sprites[asset.id] = svgEl ? svgEl.innerHTML : svgText;
+                });
+
+                await Promise.all(loadPromises);
+                console.log("Assets loaded successfully.");
+
+                // Inject UI Graphics
+                document.getElementById('main-logo').innerHTML = Sprites.ui_logo;
+                document.getElementById('btn-start').innerHTML = Sprites.ui_btn_start;
+                document.getElementById('btn-settings').innerHTML = Sprites.ui_btn_settings;
+                document.getElementById('btn-close-settings').innerHTML = Sprites.ui_btn_settings;
+                document.getElementById('ui-score-label').innerHTML = Sprites.ui_label_score;
+                document.getElementById('ui-wave-label').innerHTML = Sprites.ui_label_wave;
+                document.getElementById('ui-shield-label').innerHTML = Sprites.ui_label_shield;
+                document.getElementById('label-music').innerHTML = Sprites.ui_label_music;
+
+                return true;
+            } catch (err) {
+                console.error("Error loading assets:", err);
+                return false;
+            }
+        }
 
         class Entity {
-            constructor(id, x, y, width, height, svgContent) {
+            constructor(id, x, y, width, height, sprites) {
                 this.id = id;
                 this.x = x;
                 this.y = y;
                 this.width = width;
                 this.height = height;
-                this.vx = 0;
+                this.z = 0;
                 this.vy = 0;
+                this.angle = 0;
                 this.markedForDeletion = false;
+                this.layer = 0; // 0: Bottom (Shadow), 1: Mid, 2: Top (Shield)
 
                 this.element = document.createElementNS("http://www.w3.org/2000/svg", "g");
-                this.element.innerHTML = svgContent;
+                this.shadowGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
+                this.engineGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
+                this.mainGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
+                this.shieldGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
+                
+                this.element.appendChild(this.shadowGroup);
+                this.element.appendChild(this.engineGroup);
+                this.element.appendChild(this.mainGroup);
+                this.element.appendChild(this.shieldGroup);
+                this.shieldGroup.style.display = 'none';
+
+                if (sprites) this.updateSprites(sprites);
+
                 worldGroup.appendChild(this.element);
                 this.updateTransform();
             }
 
-            updateTransform() {
-                this.element.setAttribute("transform", `translate(${this.x}, ${this.y})`);
+            updateSprites(s) {
+                if (s.shadow) this.shadowGroup.innerHTML = s.shadow;
+                if (s.base) this.mainGroup.innerHTML = s.base;
+                if (s.shield) this.shieldGroup.innerHTML = s.shield;
             }
 
+            updateTransform() {
+                this.shadowGroup.setAttribute("transform", `translate(0, ${this.z}) scale(${1 + this.z/200})`);
+                this.shadowGroup.style.opacity = Math.max(0, 0.5 - this.z/400);
+                this.mainGroup.setAttribute("transform", `rotate(${this.angle})`);
+                this.shieldGroup.setAttribute("transform", `rotate(${this.angle})`);
+                this.element.setAttribute("transform", `translate(${this.x}, ${this.y - this.z})`);
+            }
+
+            showShield(visible) { this.shieldGroup.style.display = visible ? 'block' : 'none'; }
+
             remove() {
-                if (this.element.parentNode) {
-                    this.element.parentNode.removeChild(this.element);
-                }
+                if (this.element.parentNode) this.element.parentNode.removeChild(this.element);
             }
         }
 
-        class Player extends Entity {
+        class DesertBG {
             constructor() {
-                super('player', GAME_WIDTH / 2 - 20, GAME_HEIGHT - 60, 40, 40, Sprites.player);
-                this.speed = 300;
+                this.group = document.getElementById('bg-group');
+                this.nodes = [];
+                this.speedY = 180;
+                this.init();
+            }
+
+            init() {
+                this.group.innerHTML = `<rect width="800" height="600" fill="#1A1100" />`;
+                for(let i = 0; i < 45; i++) {
+                    const node = document.createElementNS("http://www.w3.org/2000/svg", "line");
+                    const isSand = Math.random() > 0.3;
+                    node.setAttribute('stroke', isSand ? '#C2B280' : '#FF6600');
+                    node.setAttribute('stroke-width', isSand ? '1' : '2');
+                    node.setAttribute('opacity', Math.random() * 0.4 + 0.1);
+                    const x = Math.random() * 800;
+                    const y = Math.random() * 600;
+                    const h = isSand ? (Math.random() * 20 + 5) : (Math.random() * 60 + 20);
+                    this.nodes.push({ el: node, x, y, h, isSand });
+                    this.group.appendChild(node);
+                }
+            }
+
+            update(dt, bankAngle = 0) {
+                // Apply banking rotation (50% damping)
+                this.group.setAttribute("transform", `rotate(${-bankAngle * 0.5}, 400, 300)`);
+                
+                this.nodes.forEach(n => {
+                    n.y += this.speedY * (n.isSand ? 1.0 : 1.2) * dt;
+                    n.x -= bankAngle * 5 * dt; // Parallax
+                    if (n.y > 600) { n.y = -n.h; n.x = Math.random() * 800; }
+                    if (n.x < -200) n.x = 1000;
+                    if (n.x > 1000) n.x = -200;
+                    n.el.setAttribute('x1', n.x); n.el.setAttribute('x2', n.x);
+                    n.el.setAttribute('y1', n.y); n.el.setAttribute('y2', n.y + n.h);
+                });
+            }
+        }
+
+        class Terran extends Entity {
+            constructor() {
+                super('terran', GAME_WIDTH / 2 - 40, GAME_HEIGHT - 100, 80, 80);
+                this.level = 1;
+                this.subLevel = 1;
+                this.speed = 400;
                 this.cooldown = 0;
+                this.bankAngle = 0;
+                this.missiles = 5;
+                this.missileType = 'mini';
+                this.shields = 100;
+                this.updateLevelSprites();
+                this.setupEngine();
+            }
+
+            getEngineColor() {
+                const colors = {
+                    '1-1': '#FFCC00', '1-2': '#FF6600', '1-3': '#FF3300', // Scouts
+                    '2-1': '#00FF00', '2-2': '#00FFFF', '2-3': '#0066FF', // Fighters
+                    '3-1': '#9900FF', '3-2': '#FF00FF', '3-3': '#FFFFFF'  // Dreadnaughts
+                };
+                return colors[`${this.level}-${this.subLevel}`] || '#FF6600';
+            }
+
+            setupEngine() {
+                this.engineGroup.innerHTML = `
+                    <circle cx="40" cy="85" r="15" fill="url(#fireGradient)" opacity="0.8">
+                        <animate attributeName="r" values="12;18;12" dur="0.1s" repeatCount="indefinite" />
+                    </circle>
+                    <defs>
+                        <radialGradient id="fireGradient">
+                            <stop offset="0%" stop-color="${this.getEngineColor()}" />
+                            <stop offset="100%" stop-color="transparent" />
+                        </radialGradient>
+                    </defs>
+                `;
+            }
+
+            updateLevelSprites() {
+                const rank = this.level === 1 ? 'scout' : (this.level === 2 ? 'fighter' : 'dreadnought');
+                this.updateSprites({
+                    base: Sprites[`terran_${rank}`],
+                    shield: Sprites[`terran_${rank}_shield`],
+                    shadow: Sprites[`terran_${rank}_shadow`]
+                });
+                
+                // Update properties
+                this.speed = 400 + (this.level - 1) * 100 + (this.subLevel - 1) * 50;
+
+                // Update engine color
+                if (this.engineGroup.querySelector('stop')) {
+                    this.engineGroup.querySelector('stop').setAttribute('stop-color', this.getEngineColor());
+                }
             }
 
             update(dt) {
                 let movingLeft = keys.ArrowLeft || mobileInputs.left;
                 let movingRight = keys.ArrowRight || mobileInputs.right;
                 let firing = keys.Space || mobileInputs.fire;
+                let launchMissile = keys.KeyM || mobileInputs.missile; // Hypothetical M key
 
-                if (movingLeft) this.x -= this.speed * dt;
-                if (movingRight) this.x += this.speed * dt;
+                if (movingLeft) {
+                    this.x -= this.speed * dt;
+                    this.bankAngle = Math.max(-25, this.bankAngle - 150 * dt);
+                } else if (movingRight) {
+                    this.x += this.speed * dt;
+                    this.bankAngle = Math.min(25, this.bankAngle + 150 * dt);
+                } else {
+                    this.bankAngle *= 0.85;
+                }
+                this.angle = this.bankAngle;
 
-                // Bounds
                 if (this.x < 0) this.x = 0;
                 if (this.x > GAME_WIDTH - this.width) this.x = GAME_WIDTH - this.width;
 
                 this.updateTransform();
 
-                // Firing
                 if (this.cooldown > 0) this.cooldown -= dt;
+                
+                // Primary Fire
                 if (firing && this.cooldown <= 0) {
-                    entities.bullets.push(new Bullet(this.x + this.width / 2 - 2, this.y - 15));
+                    entities.bullets.push(new Projectile(this.x + this.width / 2 - 5, this.y - 15, 'terran', 'bullet'));
                     playSound('shoot');
-                    this.cooldown = 0.3; // Fire rate
+                    this.cooldown = this.level === 3 ? 0.12 : 0.25; 
+                }
+
+                // Missile Fire
+                if (launchMissile && this.cooldown <= 0 && this.missiles > 0) {
+                    const mType = this.missileType === 'mini' ? 'mini_missile' : 'missile';
+                    entities.bullets.push(new Projectile(this.x + this.width / 2 - 5, this.y - 20, 'terran', mType));
+                    this.missiles--;
+                    this.cooldown = 0.5;
+                }
+
+                // UI Update
+                document.getElementById('shield-meter').style.width = this.shields + '%';
+                document.getElementById('missile-count').innerText = `MISSILES: ${this.missiles} (${this.missileType.toUpperCase()})`;
+            }
+        }
+
+        class Escort extends Entity {
+            constructor(offsetX) {
+                super('escort_' + offsetX, 0, 0, 60, 60);
+                this.offsetX = offsetX;
+                this.cooldown = Math.random() * 0.5;
+                this.missiles = Math.floor(Math.random() * 4) + 1;
+                this.z = 20;
+                this.updateSprites({
+                    base: Sprites['terran_scout'],
+                    shadow: Sprites['terran_scout_shadow']
+                });
+            }
+
+            update(dt, playerX, playerY) {
+                this.x = playerX + this.offsetX;
+                this.y = playerY + 15;
+                this.updateTransform();
+
+                if (this.cooldown > 0) this.cooldown -= dt;
+                if (this.cooldown <= 0) {
+                    // Check for fighters or dreadnaughts to use missiles
+                    const highPriority = entities.demons.some(d => d.rank !== 'scout' && d.y > 0);
+                    if (highPriority && this.missiles > 0) {
+                        entities.bullets.push(new Projectile(this.x + this.width / 2 - 5, this.y - 10, 'terran', 'mini_missile'));
+                        this.missiles--;
+                        this.cooldown = 1.2;
+                    } else {
+                        entities.bullets.push(new Projectile(this.x + this.width / 2 - 5, this.y - 10, 'terran', 'bullet'));
+                        this.cooldown = 0.7; 
+                    }
                 }
             }
         }
 
+        class Pod extends Entity {
+            constructor(type) {
+                super('pod_' + Math.random(), Math.random() * (GAME_WIDTH - 50), -50, 50, 50);
+                this.type = type; // 'missile' or 'power'
+                this.timer = null;
+                this.isVanishing = false;
+                this.speedY = 50;
+                this.updateSprites({
+                    base: Sprites[type === 'missile' ? 'terran_missile_pod' : 'terran_power_pod'],
+                    shadow: Sprites['terran_pod_shadow'],
+                    shield: Sprites['terran_pod_shield']
+                });
+            }
+
+            triggerTimer() {
+                if (this.isVanishing) return;
+                this.isVanishing = true;
+                this.showShield(true);
+                this.timer = 5.0; // 5 seconds to vanish
+            }
+
+            update(dt) {
+                this.y += this.speedY * dt;
+                if (this.timer !== null) {
+                    this.timer -= dt;
+                    if (this.timer <= 0) this.markedForDeletion = true;
+                    // Flash effect
+                    this.mainGroup.style.opacity = (Math.sin(Date.now() / 100) * 0.5 + 0.5);
+                }
+                this.updateTransform();
+                if (this.y > GAME_HEIGHT + 50) this.markedForDeletion = true;
+            }
+        }
+
         class Demon extends Entity {
-            constructor(x, y, waveSpeedOffset) {
-                super('demon_' + Math.random(), x, y, 40, 40, Sprites.demon);
-                this.speedX = (100 + waveSpeedOffset) * (Math.random() > 0.5 ? 1 : -1);
-                this.speedY = 15 + waveSpeedOffset / 5;
+            constructor(x, y, wave) {
+                const rank = wave < 4 ? 'scout' : (wave < 8 ? 'fighter' : 'dreadnaught');
+                super('demon_' + Math.random(), x, y, 60, 60);
+                this.rank = rank;
+                this.updateSprites({
+                    base: Sprites[`demon_${rank}`],
+                    shield: Sprites[`demon_${rank}_shield`],
+                    shadow: Sprites[`demon_${rank}_shadow`]
+                });
+                this.speedX = (120 + wave * 10) * (Math.random() > 0.5 ? 1 : -1);
+                this.speedY = 20 + wave * 2;
                 this.diveTimer = Math.random() * 3 + 2;
                 this.isDiving = false;
             }
 
             update(dt) {
                 this.x += this.speedX * dt;
-                
                 if (!this.isDiving) {
                     this.diveTimer -= dt;
                     if (this.diveTimer <= 0) {
                         this.isDiving = true;
-                        this.speedY *= 5; // Fast dive
+                        this.speedY *= 4; 
                         playSound('demon_move');
                     }
                 } else {
-                     this.y += this.speedY * dt;
+                    this.y += this.speedY * dt;
+                    this.z = Math.min(60, this.z + 80 * dt);
                 }
-
-                // Bounce off walls
-                if (this.x <= 0 || this.x >= GAME_WIDTH - this.width) {
-                    this.speedX *= -1;
-                    this.x = Math.max(0, Math.min(this.x, GAME_WIDTH - this.width));
-                }
-
-                // Reset to top if escapes bottom
+                if (this.x <= 0 || this.x >= GAME_WIDTH - this.width) this.speedX *= -1;
                 if (this.y > GAME_HEIGHT) {
-                    this.y = -50;
+                    this.y = -60;
                     this.isDiving = false;
-                    this.speedY /= 5;
-                    this.diveTimer = Math.random() * 3 + 2;
+                    this.speedY /= 4;
+                    this.z = 0;
+                    this.diveTimer = Math.random() * 4 + 2;
                 }
-
                 this.updateTransform();
             }
         }
 
-        class Bullet extends Entity {
-            constructor(x, y) {
-                super('bullet_' + Math.random(), x, y, 4, 15, Sprites.bullet);
-                this.speed = -500;
+        class Projectile extends Entity {
+            constructor(x, y, faction, type) {
+                super('proj_' + Math.random(), x, y, 10, 20);
+                this.faction = faction;
+                this.type = type;
+                this.speed = (faction === 'terran') ? -650 : 450;
+                
+                this.updateSprites({
+                    base: Sprites[`${faction}_${type}`],
+                    shadow: (faction === 'terran' && type === 'missile') ? Sprites['terran_missile_shadow'] : null
+                });
             }
 
             update(dt) {
                 this.y += this.speed * dt;
+                if (this.type === 'missile') this.z = Math.sin(Date.now() / 150) * 15;
                 this.updateTransform();
-                if (this.y < -20) this.markedForDeletion = true;
+                if (this.y < -100 || this.y > GAME_HEIGHT + 100) this.markedForDeletion = true;
             }
         }
 
-        function createExplosion(x, y) {
-            playSound('explosion');
-            // Flash screen effect could go here
-        }
+        function createExplosion(x, y) { playSound('explosion'); }
 
         function checkCollisions() {
-            // Bullets vs Demons
+            // Projectiles vs Enemies/Pods
             entities.bullets.forEach(b => {
+                // vs Demons
                 entities.demons.forEach(d => {
-                    if (!b.markedForDeletion && !d.markedForDeletion &&
+                    if (!b.markedForDeletion && !d.markedForDeletion && b.faction !== 'demon' &&
                         b.x < d.x + d.width && b.x + b.width > d.x &&
                         b.y < d.y + d.height && b.y + b.height > d.y) {
-                        
                         b.markedForDeletion = true;
                         d.markedForDeletion = true;
                         gameState.score += 10 * gameState.wave;
                         createExplosion(d.x, d.y);
                     }
                 });
+
+                // vs Pods (Any bullet triggers timer)
+                entities.pods.forEach(p => {
+                    if (!b.markedForDeletion && b.x < p.x + p.width && b.x + b.width > p.x &&
+                        b.y < p.y + p.height && b.y + b.height > p.y) {
+                        b.markedForDeletion = true;
+                        p.triggerTimer();
+                    }
+                });
+
+                // vs Player/Escorts (Only Demon bullets)
+                if (b.faction === 'demon') {
+                    [entities.player, ...entities.escorts].forEach(ship => {
+                        if (ship && !b.markedForDeletion &&
+                            b.x < ship.x + ship.width && b.x + b.width > ship.x &&
+                            b.y < ship.y + ship.height && b.y + b.height > ship.y) {
+                            b.markedForDeletion = true;
+                            if (ship === entities.player) {
+                                if (ship.shields > 0) {
+                                    ship.shields -= 20;
+                                    ship.showShield(true);
+                                    setTimeout(() => ship.showShield(false), 500);
+                                } else {
+                                    gameState.lives--;
+                                    createExplosion(ship.x, ship.y);
+                                    if (gameState.lives <= 0) gameOver();
+                                    else ship.shields = 100; // Reset shields on life loss
+                                }
+                            }
+                        }
+                    });
+                }
+            });
+
+            // Player/Escorts vs Pods (Pickups)
+            [entities.player, ...entities.escorts].forEach(ship => {
+                if (!ship) return;
+                entities.pods.forEach(p => {
+                    if (!p.markedForDeletion &&
+                        ship.x < p.x + p.width && ship.x + ship.width > p.x &&
+                        ship.y < p.y + p.height && ship.y + p.height > p.y) {
+                        
+                        // Apply effect
+                        if (p.type === 'missile') {
+                            if (ship === entities.player) {
+                                ship.missiles += 10;
+                                if (ship.missileType === 'mini') ship.missileType = 'standard';
+                            } else {
+                                ship.missiles += 4;
+                            }
+                        } else {
+                            if (ship === entities.player) ship.shields = Math.min(100, ship.shields + 50);
+                        }
+                        p.markedForDeletion = true;
+                        playSound('demon_move'); // Temporary pickup sound
+                    }
+                });
             });
 
             // Player vs Demons
             entities.demons.forEach(d => {
-                let p = entities.player;
+                const p = entities.player;
                 if (!d.markedForDeletion &&
                     p.x < d.x + d.width && p.x + p.width > d.x &&
                     p.y < d.y + d.height && p.y + p.height > d.y) {
-                    
                     d.markedForDeletion = true;
                     gameState.lives--;
                     createExplosion(p.x, p.y);
-                    
-                    if (gameState.lives <= 0) {
-                        gameOver();
-                    }
+                    if (gameState.lives <= 0) gameOver();
                 }
             });
         }
 
         function spawnWave() {
-            let numDemons = 3 + gameState.wave;
-            let speedOffset = gameState.wave * 20;
-            for(let i = 0; i < numDemons; i++) {
-                entities.demons.push(new Demon(Math.random() * (GAME_WIDTH - 50), Math.random() * 150 + 20, speedOffset));
+            const wave = gameState.wave;
+            const p = entities.player;
+
+            // -- Player Progression (9-Tiers) --
+            if (wave <= 3) {
+                p.level = 1; p.subLevel = wave;
+            } else if (wave <= 6) {
+                p.level = 2; p.subLevel = wave - 3;
+                if (wave === 6 && entities.escorts.length === 0) {
+                    entities.escorts = [new Escort(-80), new Escort(80)];
+                }
+            } else if (wave >= 10) {
+                p.level = 3; 
+                p.subLevel = Math.min(3, Math.floor((wave - 10) / 2) + 1);
             }
+            p.updateLevelSprites();
+
+            // -- Enemy Wave Compositions --
+            if (wave === 1) {
+                // Fly solo, encounter 1 demon scout
+                entities.demons.push(new Demon(GAME_WIDTH / 2 - 30, 50, 1));
+            } else if (wave < 6) {
+                // Level 2 sortie, encounter 1-6 scouts
+                const count = Math.min(6, 1 + wave);
+                for(let i = 0; i < count; i++) {
+                    entities.demons.push(new Demon(Math.random() * (GAME_WIDTH - 60), Math.random() * 100 + 20, wave));
+                }
+            } else if (wave < 10) {
+                // Level 3 with escorts, 6-10 scouts and one fighter
+                const scouts = Math.min(10, wave + 2);
+                for(let i = 0; i < scouts; i++) {
+                    entities.demons.push(new Demon(Math.random() * (GAME_WIDTH - 60), Math.random() * 100 + 20, wave));
+                }
+                // One Fighter
+                entities.demons.push(new Demon(GAME_WIDTH / 2 - 30, 20, 5)); // Higher wave offset makes it fighter
+            } else {
+                // Dreadnaught intercept
+                const scouts = 8;
+                const fighters = Math.min(5, wave - 8);
+                for(let i = 0; i < scouts; i++) entities.demons.push(new Demon(Math.random() * (GAME_WIDTH - 60), Math.random() * 100 + 20, wave));
+                for(let i = 0; i < fighters; i++) entities.demons.push(new Demon(Math.random() * (GAME_WIDTH - 60), Math.random() * 100 + 20, 8)); // Fighters
+                
+                // Demon Dreadnaught
+                entities.demons.push(new Demon(GAME_WIDTH / 2 - 30, 10, 10)); // Wave 10+ is dreadnaught
+            }
+
             waveUI.innerText = "Wave: " + gameState.wave;
         }
 
         function updateUI() {
-            scoreUI.innerText = "Score: " + gameState.score;
-            livesUI.innerText = "Lives: " + gameState.lives;
+            const scoreDisplay = document.getElementById('score-display');
+            const waveDisplay = document.getElementById('wave-display');
+            if (scoreDisplay) scoreDisplay.innerText = gameState.score;
+            if (waveDisplay) waveDisplay.innerText = `${gameState.wave} (RANK ${entities.player.level}.${entities.player.subLevel})`;
         }
 
         function gameLoop(timestamp) {
             if (!gameState.running) return;
-
             let dt = (timestamp - gameState.lastTime) / 1000;
-            if (dt > 0.1) dt = 0.1; // Cap dt for lag spikes
+            if (dt > 0.1) dt = 0.1;
             gameState.lastTime = timestamp;
 
-            // Update Entities
+            entities.bg.update(dt, entities.player.bankAngle);
             entities.player.update(dt);
+            entities.escorts.forEach(e => e.update(dt, entities.player.x, entities.player.y));
             entities.bullets.forEach(b => b.update(dt));
             entities.demons.forEach(d => d.update(dt));
+            entities.pods.forEach(p => p.update(dt));
 
             checkCollisions();
 
-            // Cleanup & Wave Progression
             entities.bullets = entities.bullets.filter(b => { if(b.markedForDeletion) { b.remove(); return false; } return true; });
             entities.demons = entities.demons.filter(d => { if(d.markedForDeletion) { d.remove(); return false; } return true; });
+            entities.pods = entities.pods.filter(p => { if(p.markedForDeletion) { p.remove(); return false; } return true; });
+
+            // Random Pod Spawn
+            let podChance = 0.001; 
+            if (entities.demons.length > 0) podChance = 0.004; // 4x more likely during sortie
+            if (Math.random() < podChance) {
+                entities.pods.push(new Pod(Math.random() > 0.5 ? 'missile' : 'power'));
+            }
 
             if (entities.demons.length === 0) {
                 gameState.wave++;
                 spawnWave();
             }
-
             updateUI();
-
             requestAnimationFrame(gameLoop);
         }
 
@@ -556,30 +908,42 @@
         }
 
         function initGame() {
-            // Audio context requires user gesture to start
-            if (audioCtx.state === 'suspended') {
-                audioCtx.resume();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            if (!Sprites.terran_scout) {
+                const startBtn = document.getElementById('btn-start');
+                startBtn.innerText = "Loading Battle Systems...";
+                startBtn.disabled = true;
+                loadAssets().then(success => {
+                    if (success) startGameLogic();
+                    else startBtn.innerText = "Error";
+                });
+                return;
             }
+            startGameLogic();
+        }
 
-            worldGroup.innerHTML = ''; // Clear SVG
+        function startGameLogic() {
+            worldGroup.innerHTML = '';
             entities.bullets = [];
             entities.demons = [];
-            
+            entities.escorts = [];
+            entities.pods = [];
             gameState.score = 0;
             gameState.lives = 3;
             gameState.wave = 1;
-            
-            entities.player = new Player();
+            entities.player = new Terran();
+            entities.bg = new DesertBG();
+            gameState.wave = 1;
             spawnWave();
             updateUI();
-
+            updateUI();
             gameState.running = true;
             gameState.lastTime = performance.now();
-            
             switchScreen('game');
             requestAnimationFrame(gameLoop);
-
-            // Device detection for controls
+            const startBtn = document.getElementById('btn-start');
+            startBtn.innerText = "Start Game";
+            startBtn.disabled = false;
             if (window.matchMedia("(pointer: coarse)").matches || navigator.maxTouchPoints > 0) {
                 document.getElementById('mobile-controls').style.display = 'flex';
             }
