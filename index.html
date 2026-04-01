@@ -1359,61 +1359,73 @@
         });
 
         // Fullscreen Toggle
-        document.getElementById('btn-fullscreen').addEventListener('click', () => {
-            if (!document.fullscreenElement) {
-                document.documentElement.requestFullscreen().catch(err => {
-                    console.log(`Error attempting to enable fullscreen: ${err.message}`);
-                });
-            } else {
-                document.exitFullscreen();
-            }
-        });
+        const btnFullscreen = document.getElementById('btn-fullscreen');
+        if (btnFullscreen) {
+            btnFullscreen.addEventListener('click', () => {
+                if (!document.fullscreenElement) {
+                    document.documentElement.requestFullscreen().catch(err => {
+                        console.log(`Error attempting to enable fullscreen: ${err.message}`);
+                    });
+                } else {
+                    document.exitFullscreen();
+                }
+            });
+        }
 
         // Settings Logic
-        document.getElementById('vol-slider').addEventListener('input', (e) => {
-            masterVolume = e.target.value / 100;
-        });
+        const volSlider = document.getElementById('vol-slider');
+        if (volSlider) {
+            volSlider.addEventListener('input', (e) => {
+                masterVolume = e.target.value / 100;
+            });
+        }
 
         const shaderSelect = document.getElementById('shader-select');
         const customShaderBox = document.getElementById('custom-shader-box');
         
-        shaderSelect.addEventListener('change', (e) => {
-            const val = e.target.value;
-            
-            if (val === 'shader-custom') {
-                customShaderBox.style.display = 'block';
-            } else {
-                customShaderBox.style.display = 'none';
-                if (val === 'none') {
-                    worldGroup.style.filter = '';
+        if (shaderSelect && customShaderBox) {
+            shaderSelect.addEventListener('change', (e) => {
+                const val = e.target.value;
+                
+                if (val === 'shader-custom') {
+                    customShaderBox.style.display = 'block';
                 } else {
-                    worldGroup.style.filter = `url(#${val})`;
+                    customShaderBox.style.display = 'none';
+                    if (val === 'none') {
+                        worldGroup.style.filter = '';
+                    } else {
+                        worldGroup.style.filter = `url(#${val})`;
+                    }
                 }
-            }
-        });
+            });
+        }
 
         // Custom Shader Import
-        document.getElementById('btn-apply-shader').addEventListener('click', () => {
-            const defs = document.getElementById('shader-defs');
-            const customCode = document.getElementById('custom-shader-input').value;
-            
-            // Remove old custom shader if it exists
-            const oldCustom = document.getElementById('shader-custom');
-            if (oldCustom) defs.removeChild(oldCustom);
+        const btnApplyShader = document.getElementById('btn-apply-shader');
+        if (btnApplyShader) {
+            btnApplyShader.addEventListener('click', () => {
+                const defs = document.getElementById('shader-defs');
+                let customShaderInput = document.getElementById('custom-shader-input');
+                const customCode = customShaderInput ? customShaderInput.value : '';
+                
+                // Remove old custom shader if it exists
+                const oldCustom = document.getElementById('shader-custom');
+                if (oldCustom) defs.removeChild(oldCustom);
 
-            // Inject new custom shader
-            const parser = new DOMParser();
-            const svgDoc = parser.parseFromString(`<svg xmlns="http://www.w3.org/2000/svg">${customCode}</svg>`, "image/svg+xml");
-            const newFilter = svgDoc.getElementById('shader-custom');
-            
-            if (newFilter) {
-                defs.appendChild(newFilter);
-                worldGroup.style.filter = `url(#shader-custom)`;
-                alert('Custom shader applied successfully!');
-            } else {
-                alert('Error: Make sure your <filter> tag has id="shader-custom"');
-            }
-        });
+                // Inject new custom shader
+                const parser = new DOMParser();
+                const svgDoc = parser.parseFromString(`<svg xmlns="http://www.w3.org/2000/svg">${customCode}</svg>`, "image/svg+xml");
+                const newFilter = svgDoc.getElementById('shader-custom');
+                
+                if (newFilter) {
+                    defs.appendChild(newFilter);
+                    worldGroup.style.filter = `url(#shader-custom)`;
+                    alert('Custom shader applied successfully!');
+                } else {
+                    alert('Error: Make sure your <filter> tag has id="shader-custom"');
+                }
+            });
+        }
 
         // Preload assets upon launch
         loadAssets().then(success => {
