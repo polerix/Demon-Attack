@@ -391,53 +391,63 @@
 
         async function loadAssets() {
             const assets = [
-                { id: 'terran_scout', url: 'svg/terran_Scout.svg' },
-                { id: 'terran_scout_shield', url: 'svg/terran_scout_shield.svg' },
-                { id: 'terran_scout_shadow', url: 'svg/terran_Scout_Shadow.svg' },
-                { id: 'terran_fighter', url: 'svg/terran_Fighter.svg' },
-                { id: 'terran_fighter_shield', url: 'svg/terran_Fighter_Shield.svg' },
-                { id: 'terran_fighter_shadow', url: 'svg/terran_Fighter_Shadow.svg' },
-                { id: 'terran_dreadnought', url: 'svg/terran_dreadnought.svg' },
-                { id: 'terran_dreadnought_shield', url: 'svg/terran_Dreadnought_Shield.svg' },
-                { id: 'terran_dreadnaught_shadow', url: 'svg/terran_Dreadnaught_Shadow.svg' },
-                { id: 'terran_bullet', url: 'svg/terran_Bullet.svg' },
-                { id: 'terran_missile', url: 'svg/terran_Missile.svg' },
-                { id: 'terran_missile_shadow', url: 'svg/terran_Missile_Shadow.svg' },
-                { id: 'terran_mini_missile', url: 'svg/terran_Mini_Missile.svg' },
-                { id: 'terran_mini_missile_shadow', url: 'svg/terran_Mini_Missile_Shadow.svg' },
-                { id: 'terran_missile_pod', url: 'svg/terran_Missile_Pod.svg' },
-                { id: 'terran_power_pod', url: 'svg/terran_Power_Pod.svg' },
-                { id: 'terran_pod_shield', url: 'svg/terran_Pod_Shield.svg' },
-                { id: 'terran_pod_shadow', url: 'svg/terran_Pod_Shadow.svg' },
-                { id: 'demon_scout', url: 'svg/demon_Scout.svg' },
-                { id: 'demon_scout_shield', url: 'svg/demon_Scout_Shield.svg' },
-                { id: 'demon_scout_shadow', url: 'svg/demon_scout_Shadow.svg' },
-                { id: 'demon_fighter', url: 'svg/demon_Fighter.svg' },
-                { id: 'demon_fighter_shield', url: 'svg/demon_Fighter_Shield.svg' },
-                { id: 'demon_fighter_shadow', url: 'svg/demon_Fighter_Shadow.svg' },
-                { id: 'demon_dreadnaught', url: 'svg/demon_dreadnaught.svg' },
-                { id: 'demon_dreadnaught_shield', url: 'svg/demon_Dreadnaught_Shield.svg' },
-                { id: 'demon_dreadnaught_shadow', url: 'svg/demon_Dreadnaught_Shadow.svg' },
-                { id: 'demon_bullet', url: 'svg/demon_Bullet.svg' },
-                { id: 'demon_missile', url: 'svg/demon_Missile.svg' },
-                { id: 'ui_logo', url: 'svg/ui-Demon-Attack.svg' },
-                { id: 'ui_btn_start', url: 'svg/ui_Start_Game_W.svg' },
-                { id: 'ui_btn_settings', url: 'svg/ui_Settings_W.svg' },
-                { id: 'ui_label_score', url: 'svg/ui_Bonus_W.svg' }, 
-                { id: 'ui_label_wave', url: 'svg/ui_Level_Up_W.svg' },
-                { id: 'ui_label_shield', url: 'svg/ui_Shields.svg' },
-                { id: 'ui_label_music', url: 'svg/ui_Music_W.svg' }
+                { id: 'terran_scout', url: 'SVG/terran_Scout.svg' },
+                { id: 'terran_scout_shield', url: 'SVG/terran_scout_shield.svg' },
+                { id: 'terran_scout_shadow', url: 'SVG/terran_Scout_Shadow.svg' },
+                { id: 'terran_fighter', url: 'SVG/terran_Fighter.svg' },
+                { id: 'terran_fighter_shield', url: 'SVG/terran_Fighter_Shield.svg' },
+                { id: 'terran_fighter_shadow', url: 'SVG/terran_Fighter_Shadow.svg' },
+                { id: 'terran_dreadnought', url: 'SVG/terran_dreadnought.svg' },
+                { id: 'terran_dreadnought_shield', url: 'SVG/terran_Dreadnought_Shield.svg' },
+                { id: 'terran_dreadnaught_shadow', url: 'SVG/terran_Dreadnaught_Shadow.svg' },
+                { id: 'terran_bullet', url: 'SVG/terran_Bullet.svg' },
+                { id: 'terran_missile', url: 'SVG/terran_Missile.svg' },
+                { id: 'terran_missile_shadow', url: 'SVG/terran_Missile_Shadow.svg' },
+                { id: 'terran_mini_missile', url: 'SVG/terran_Mini_Missile.svg' },
+                { id: 'terran_mini_missile_shadow', url: 'SVG/terran_Mini_Missile_Shadow.svg' },
+                { id: 'terran_missile_pod', url: 'SVG/terran_Missile_Pod.svg' },
+                { id: 'terran_power_pod', url: 'SVG/terran_Power_Pod.svg' },
+                { id: 'terran_pod_shield', url: 'SVG/terran_Pod_Shield.svg' },
+                { id: 'terran_pod_shadow', url: 'SVG/terran_Pod_Shadow.svg' },
+                { id: 'demon_scout', url: 'SVG/demon_Scout.svg' },
+                { id: 'demon_scout_shield', url: 'SVG/demon_Scout_Shield.svg' },
+                { id: 'demon_scout_shadow', url: 'SVG/demon_scout_Shadow.svg' },
+                { id: 'demon_fighter', url: 'SVG/demon_Fighter.svg' },
+                { id: 'demon_fighter_shield', url: 'SVG/demon_Fighter_Shield.svg' },
+                { id: 'demon_fighter_shadow', url: 'SVG/demon_Fighter_Shadow.svg' },
+                { id: 'demon_dreadnaught', url: 'SVG/demon_dreadnaught.svg' },
+                { id: 'demon_dreadnaught_shield', url: 'SVG/demon_Dreadnaught_Shield.svg' },
+                { id: 'demon_dreadnaught_shadow', url: 'SVG/demon_Dreadnaught_Shadow.svg' },
+                { id: 'demon_bullet', url: 'SVG/demon_Bullet.svg' },
+                { id: 'demon_missile', url: 'SVG/demon_Missile.svg' },
+                { id: 'ui_logo', url: 'SVG/ui-Demon-Attack.svg' },
+                { id: 'ui_btn_start', url: 'SVG/ui_Start_Game_W.svg' },
+                { id: 'ui_btn_settings', url: 'SVG/ui_Settings_W.svg' },
+                { id: 'ui_label_score', url: 'SVG/ui_Bonus_W.svg' }, 
+                { id: 'ui_label_wave', url: 'SVG/ui_Level_Up_W.svg' },
+                { id: 'ui_label_shield', url: 'SVG/ui_Shields.svg' },
+                { id: 'ui_label_music', url: 'SVG/ui_Music_W.svg' }
             ];
 
             try {
                 const loadPromises = assets.map(async (asset) => {
                     const response = await fetch(asset.url);
-                    if (!response.ok) throw new Error(`Failed to load ${asset.url}`);
+                    if (!response.ok) {
+                        console.warn(`Failed to load ${asset.url}, substituting empty graphic.`);
+                        Sprites[asset.id] = '';
+                        return;
+                    }
                     const svgText = await response.text();
                     const parser = new DOMParser();
                     const doc = parser.parseFromString(svgText, 'image/svg+xml');
                     const svgEl = doc.querySelector('svg');
-                    Sprites[asset.id] = svgEl ? svgEl.innerHTML : svgText;
+                    if (svgEl) {
+                        svgEl.removeAttribute('width');
+                        svgEl.removeAttribute('height');
+                        Sprites[asset.id] = svgEl.outerHTML;
+                    } else {
+                        Sprites[asset.id] = svgText;
+                    }
                 });
 
                 await Promise.all(loadPromises);
@@ -492,9 +502,21 @@
             }
 
             updateSprites(s) {
-                if (s.shadow) this.shadowGroup.innerHTML = s.shadow;
-                if (s.base) this.mainGroup.innerHTML = s.base;
-                if (s.shield) this.shieldGroup.innerHTML = s.shield;
+                const resize = (str) => {
+                    if (!str) return '';
+                    const temp = document.createElement('div');
+                    temp.innerHTML = str;
+                    const svg = temp.querySelector('svg');
+                    if (svg) {
+                        svg.setAttribute('width', this.width);
+                        svg.setAttribute('height', this.height);
+                        return svg.outerHTML;
+                    }
+                    return str;
+                };
+                if (s.shadow) this.shadowGroup.innerHTML = resize(s.shadow);
+                if (s.base) this.mainGroup.innerHTML = resize(s.base);
+                if (s.shield) this.shieldGroup.innerHTML = resize(s.shield);
             }
 
             updateTransform() {
@@ -930,7 +952,7 @@
             let imgIndex = 3 - livesLeft;
             if (imgIndex < 1) imgIndex = 1;
             if (imgIndex > 3) imgIndex = 3;
-            overlay.style.backgroundImage = `url('SVG/ui-damage-0${imgIndex}.png')`;
+            overlay.style.backgroundImage = `url('svg/ui-damage-0${imgIndex}.png')`;
             overlay.classList.remove('animate');
             void overlay.offsetWidth; // Reflow to restart CSS animation
             overlay.classList.add('animate');
