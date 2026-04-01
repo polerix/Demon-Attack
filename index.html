@@ -349,7 +349,7 @@
             lastTime: 0
         };
 
-        let keys = { ArrowLeft: false, ArrowRight: false, Space: false, KeyM: false };
+        let keys = { ArrowLeft: false, ArrowRight: false, Space: false, Enter: false };
         const mobileInputs = { left: false, right: false, fire: false };
 
         class ObjectPool {
@@ -522,7 +522,10 @@
                 el.style.width = ship.s + 'px';
                 el.style.height = ship.s + 'px';
                 el.style.left = ship.dir === 1 ? '-200px' : '110vw';
-                el.style.transform = `rotate(${ship.dir === 1 ? 90 : -90}deg)`;
+                // Demons face DOWN in their SVG (they dive at player), so rotation is flipped vs Terrans
+                const isDemon = ship.id.startsWith('demon');
+                const rotDir = isDemon ? (ship.dir === 1 ? -90 : 90) : (ship.dir === 1 ? 90 : -90);
+                el.style.transform = `rotate(${rotDir}deg)`;
                 
                 el.innerHTML = Sprites[ship.id];
                 const svg = el.querySelector('svg');
@@ -591,8 +594,10 @@
                 const perspective = Math.max(0.2, 0.3 + (this.y / 600) * 0.7);
                 this.shadowGroup.setAttribute("transform", `translate(0, ${this.z}) scale(${1 + this.z/200})`);
                 this.shadowGroup.style.opacity = Math.max(0, 0.5 - this.z/400);
-                this.mainGroup.setAttribute("transform", `rotate(${this.angle})`);
-                this.shieldGroup.setAttribute("transform", `rotate(${this.angle})`);
+                // Pivot rotation around nose tip (center-x, top-y of bounding box)
+                const pivotX = this.width / 2;
+                this.mainGroup.setAttribute("transform", `rotate(${this.angle}, ${pivotX}, 0)`);
+                this.shieldGroup.setAttribute("transform", `rotate(${this.angle}, ${pivotX}, 0)`);
                 this.element.setAttribute("transform", `translate(${this.x}, ${this.y - this.z}) scale(${perspective})`);
             }
 
@@ -669,12 +674,13 @@
 
             setupEngine() {
                 this.engineGroup.innerHTML = `
-                    <circle cx="40" cy="85" r="15" fill="url(#fireGradient)" opacity="0.8">
-                        <animate attributeName="r" values="12;18;12" dur="0.1s" repeatCount="indefinite" />
+                    <circle cx="${this.width/2}" cy="72" r="12" fill="url(#fireGradient)" opacity="0.85">
+                        <animate attributeName="r" values="10;16;10" dur="0.1s" repeatCount="indefinite" />
                     </circle>
                     <defs>
                         <radialGradient id="fireGradient">
                             <stop offset="0%" stop-color="${this.getEngineColor()}" />
+                            <stop offset="70%" stop-color="${this.getEngineColor()}" stop-opacity="0.4" />
                             <stop offset="100%" stop-color="transparent" />
                         </radialGradient>
                     </defs>
@@ -702,7 +708,7 @@
                 let movingLeft = keys.ArrowLeft || mobileInputs.left;
                 let movingRight = keys.ArrowRight || mobileInputs.right;
                 let firing = keys.Space || mobileInputs.fire;
-                let launchMissile = keys.KeyM || mobileInputs.missile; // Hypothetical M key
+                let launchMissile = keys.Enter || mobileInputs.missile;
 
                 if (movingLeft) {
                     this.x -= this.speed * dt;
@@ -1005,8 +1011,8 @@
             }
         }
 
-        const bulletPool = new ObjectPool(() => new Projectile(), 200);
-        const particlePool = new ObjectPool(() => new Particle(), 150);
+        let bulletPool = new ObjectPool(() => new Projectile(), 200);
+        let particlePool = new ObjectPool(() => new Particle(), 150);
 
         function createExplosion(x, y) { 
             playSound('explosion'); 
@@ -1300,6 +1306,9 @@
             entities.demons = [];
             entities.escorts = [];
             entities.pods = [];
+            // Recreate object pools — worldGroup.innerHTML='' destroys old pool DOM elements
+            bulletPool = new ObjectPool(() => new Projectile(), 200);
+            particlePool = new ObjectPool(() => new Particle(), 150);
             gameState.score = 0;
             gameState.lives = 3;
             gameState.wave = 1;
