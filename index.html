@@ -210,7 +210,7 @@
 
     <div id="screen-landing" class="screen active">
         <div id="main-logo" style="width:600px; height:200px;"></div>
-        <button id="btn-start" class="btn-svg"></button>
+        <button id="btn-start" class="btn-svg" style="color:var(--primary-red); font-family:'GyozaDEMO', sans-serif; font-size: 1.5rem;">INITIALIZING...</button>
         <button id="btn-settings" class="btn-svg"></button>
     </div>
 
@@ -227,6 +227,7 @@
 
     <div id="screen-game" class="screen hidden">
         <div id="damage-overlay" class="damage-flash"></div>
+        <div id="persistent-damage" style="position: absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:6; display:none;"></div>
         <div id="wave-announcement" class="wave-announcement">WAVE 1</div>
         <div id="game-ui">
             <div class="ui-block">
@@ -386,7 +387,8 @@
             terran_missile_pod: '', terran_power_pod: '',
             terran_pod_shield: '', terran_pod_shadow: '',
             ui_logo: '', ui_btn_start: '', ui_btn_settings: '',
-            ui_label_score: '', ui_label_wave: '', ui_label_shield: '', ui_label_music: ''
+            ui_label_score: '', ui_label_wave: '', ui_label_shield: '', ui_label_music: '',
+            ui_damage_01: '', ui_damage_02: '', ui_damage_03: ''
         };
 
         async function loadAssets() {
@@ -426,7 +428,10 @@
                 { id: 'ui_label_score', url: 'SVG/ui_Bonus_W.svg' }, 
                 { id: 'ui_label_wave', url: 'SVG/ui_Level_Up_W.svg' },
                 { id: 'ui_label_shield', url: 'SVG/ui_Shields.svg' },
-                { id: 'ui_label_music', url: 'SVG/ui_Music_W.svg' }
+                { id: 'ui_label_music', url: 'SVG/ui_Music_W.svg' },
+                { id: 'ui_damage_01', url: 'SVG/ui_Dammage_01.svg' },
+                { id: 'ui_damage_02', url: 'SVG/ui_Dammage_02.svg' },
+                { id: 'ui_damage_03', url: 'SVG/ui_Dammage_03.svg' }
             ];
 
             try {
@@ -437,7 +442,12 @@
                         Sprites[asset.id] = '';
                         return;
                     }
-                    const svgText = await response.text();
+                    let svgText = await response.text();
+                    
+                    // Scope generic SVG classes to prevent color collisions
+                    svgText = svgText.replace(/\.cls-/g, `.${asset.id}_cls-`);
+                    svgText = svgText.replace(/class="cls-/g, `class="${asset.id}_cls-`);
+
                     const parser = new DOMParser();
                     const doc = parser.parseFromString(svgText, 'image/svg+xml');
                     const svgEl = doc.querySelector('svg');
@@ -959,6 +969,34 @@
             overlay.classList.add('animate');
         }
 
+        function updatePersistentDamage() {
+            const container = document.getElementById('persistent-damage');
+            if (!container || !entities.player) return;
+            const shields = entities.player.shields;
+            
+            let html = '';
+            if (shields <= 33) {
+                html = Sprites.ui_damage_03;
+            } else if (shields <= 66) {
+                html = Sprites.ui_damage_02;
+            } else if (shields < 100) {
+                html = Sprites.ui_damage_01;
+            }
+
+            if (!html || html === '') {
+                container.style.display = 'none';
+                return;
+            }
+            container.style.display = 'block';
+            container.innerHTML = html;
+            const svg = container.querySelector('svg');
+            if (svg) {
+                svg.style.width = '100%';
+                svg.style.height = '100%';
+                svg.setAttribute('preserveAspectRatio', 'xMidYMid slice');
+            }
+        }
+
         function checkCollisions() {
             // Projectiles vs Enemies/Pods
             Array.from(bulletPool.active).forEach(b => {
@@ -1014,12 +1052,16 @@
                                     ship.shields -= 20;
                                     ship.showShield(true);
                                     setTimeout(() => ship.showShield(false), 500);
+                                    updatePersistentDamage();
                                 } else {
                                     gameState.lives--;
                                     triggerDamageFlash(gameState.lives);
                                     createExplosion(ship.x, ship.y);
                                     if (gameState.lives <= 0) gameOver();
-                                    else ship.shields = 100; // Reset shields on life loss
+                                    else {
+                                        ship.shields = 100; // Reset shields on life loss
+                                        updatePersistentDamage();
+                                    }
                                 }
                             }
                         }
@@ -1044,7 +1086,10 @@
                                 ship.missiles += 4;
                             }
                         } else {
-                            if (ship === entities.player) ship.shields = Math.min(100, ship.shields + 50);
+                            if (ship === entities.player) {
+                                ship.shields = Math.min(100, ship.shields + 50);
+                                updatePersistentDamage();
+                            }
                         }
                         p.markedForDeletion = true;
                         playSound('demon_move'); // Temporary pickup sound
@@ -1063,6 +1108,10 @@
                     triggerDamageFlash(gameState.lives);
                     createExplosion(p.x, p.y);
                     if (gameState.lives <= 0) gameOver();
+                    else {
+                        p.shields = 100;
+                        updatePersistentDamage();
+                    }
                 }
             });
         }
@@ -1178,13 +1227,6 @@
         function initGame() {
             if (audioCtx.state === 'suspended') audioCtx.resume();
             if (!Sprites.terran_scout) {
-                const startBtn = document.getElementById('btn-start');
-                startBtn.innerText = "Loading Battle Systems...";
-                startBtn.disabled = true;
-                loadAssets().then(success => {
-                    if (success) startGameLogic();
-                    else startBtn.innerText = "Error";
-                });
                 return;
             }
             startGameLogic();
@@ -1203,6 +1245,7 @@
             entities.player = new Terran();
             entities.bg = new DesertBG();
             gameState.wave = 1;
+            updatePersistentDamage();
             spawnWave();
             updateUI();
             updateUI();
@@ -1210,9 +1253,6 @@
             gameState.lastTime = performance.now();
             switchScreen('game');
             requestAnimationFrame(gameLoop);
-            const startBtn = document.getElementById('btn-start');
-            startBtn.innerText = "Start Game";
-            startBtn.disabled = false;
             if (window.matchMedia("(pointer: coarse)").matches || navigator.maxTouchPoints > 0) {
                 document.getElementById('mobile-controls').style.display = 'flex';
             }
@@ -1313,6 +1353,13 @@
                 alert('Custom shader applied successfully!');
             } else {
                 alert('Error: Make sure your <filter> tag has id="shader-custom"');
+            }
+        });
+
+        // Preload assets upon launch
+        loadAssets().then(success => {
+            if (!success) {
+                document.getElementById('btn-start').innerText = "FATAL ERROR: Assets missing";
             }
         });
 
