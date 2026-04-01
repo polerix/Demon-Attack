@@ -4,6 +4,7 @@
     <style>
       .cls-1 {
         fill: aqua;
+        opacity: .69;
       }
     </style>
   </defs>
