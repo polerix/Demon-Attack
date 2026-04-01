@@ -244,7 +244,7 @@
             </div>
         </div>
         
-        <svg id="game-svg" viewBox="0 0 800 600" preserveAspectRatio="xMidYMid slice">
+        <svg id="game-svg" viewBox="0 0 800 600" preserveAspectRatio="xMidYMid meet">
             <defs>
                 <circle id="spark" cx="0" cy="0" r="3" fill="#FFAA00" filter="drop-shadow(0 0 5px #FFAA00)" />
             </defs>
@@ -576,7 +576,7 @@
 
         class Terran extends Entity {
             constructor() {
-                super('terran', GAME_WIDTH / 2 - 40, GAME_HEIGHT - 100, 80, 80);
+                super('terran', GAME_WIDTH / 2 - 40, GAME_HEIGHT - 120, 80, 80);
                 this.level = 1;
                 this.subLevel = 1;
                 this.speed = 400;
