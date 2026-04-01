@@ -490,9 +490,9 @@
                 this.shieldGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
                 
                 this.element.appendChild(this.shadowGroup);
+                this.element.appendChild(this.shieldGroup);
                 this.element.appendChild(this.engineGroup);
                 this.element.appendChild(this.mainGroup);
-                this.element.appendChild(this.shieldGroup);
                 this.shieldGroup.style.display = 'none';
 
                 if (sprites) this.updateSprites(sprites);
@@ -520,11 +520,12 @@
             }
 
             updateTransform() {
+                const perspective = Math.max(0.2, 0.3 + (this.y / 600) * 0.7);
                 this.shadowGroup.setAttribute("transform", `translate(0, ${this.z}) scale(${1 + this.z/200})`);
                 this.shadowGroup.style.opacity = Math.max(0, 0.5 - this.z/400);
                 this.mainGroup.setAttribute("transform", `rotate(${this.angle})`);
                 this.shieldGroup.setAttribute("transform", `rotate(${this.angle})`);
-                this.element.setAttribute("transform", `translate(${this.x}, ${this.y - this.z})`);
+                this.element.setAttribute("transform", `translate(${this.x}, ${this.y - this.z}) scale(${perspective})`);
             }
 
             showShield(visible) { this.shieldGroup.style.display = visible ? 'block' : 'none'; }
@@ -543,15 +544,15 @@
             }
 
             init() {
-                this.group.innerHTML = `<rect width="800" height="600" fill="#1A1100" />`;
-                for(let i = 0; i < 45; i++) {
+                this.group.innerHTML = `<rect x="-800" y="-600" width="2400" height="1800" fill="#1A1100" />`;
+                for(let i = 0; i < 60; i++) {
                     const node = document.createElementNS("http://www.w3.org/2000/svg", "line");
                     const isSand = Math.random() > 0.3;
                     node.setAttribute('stroke', isSand ? '#C2B280' : '#FF6600');
                     node.setAttribute('stroke-width', isSand ? '1' : '2');
                     node.setAttribute('opacity', Math.random() * 0.4 + 0.1);
-                    const x = Math.random() * 800;
-                    const y = Math.random() * 600;
+                    const x = (Math.random() * 2400) - 800;
+                    const y = (Math.random() * 1800) - 600;
                     const h = isSand ? (Math.random() * 20 + 5) : (Math.random() * 60 + 20);
                     this.nodes.push({ el: node, x, y, h, isSand });
                     this.group.appendChild(node);
@@ -559,15 +560,15 @@
             }
 
             update(dt, bankAngle = 0) {
-                // Apply banking rotation (50% damping)
-                this.group.setAttribute("transform", `rotate(${-bankAngle * 0.5}, 400, 300)`);
+                // Apply banking rotation (20% damping)
+                this.group.setAttribute("transform", `rotate(${-bankAngle * 0.2}, 400, 300)`);
                 
                 this.nodes.forEach(n => {
                     n.y += this.speedY * (n.isSand ? 1.0 : 1.2) * dt;
-                    n.x -= bankAngle * 5 * dt; // Parallax
-                    if (n.y > 600) { n.y = -n.h; n.x = Math.random() * 800; }
-                    if (n.x < -200) n.x = 1000;
-                    if (n.x > 1000) n.x = -200;
+                    n.x -= bankAngle * 2 * dt; // Parallax
+                    if (n.y > 1200) { n.y = -n.h - 600; n.x = (Math.random() * 2400) - 800; }
+                    if (n.x < -1000) n.x = 1600;
+                    if (n.x > 1600) n.x = -1000;
                     n.el.setAttribute('x1', n.x); n.el.setAttribute('x2', n.x);
                     n.el.setAttribute('y1', n.y); n.el.setAttribute('y2', n.y + n.h);
                 });
