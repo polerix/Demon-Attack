@@ -142,7 +142,7 @@
         }
         .meter-fill {
             height: 100%;
-            background: var(--blue);
+            background: #00FF66;
             width: 100%;
             transition: width 0.3s;
         }
@@ -336,7 +336,6 @@
         const svgCanvas = document.getElementById('game-svg');
         const worldGroup = document.getElementById('world-group');
         const scoreUI = document.getElementById('score-display');
-        const livesUI = document.getElementById('lives-display');
         const waveUI = document.getElementById('wave-display');
 
         const GAME_WIDTH = 800;
@@ -350,7 +349,7 @@
             lastTime: 0
         };
 
-        let keys = { ArrowLeft: false, ArrowRight: false, Space: false };
+        let keys = { ArrowLeft: false, ArrowRight: false, Space: false, KeyM: false };
         const mobileInputs = { left: false, right: false, fire: false };
 
         class ObjectPool {
@@ -486,7 +485,7 @@
                 document.getElementById('main-logo').innerHTML = Sprites.ui_logo;
                 document.getElementById('btn-start').innerHTML = Sprites.ui_btn_start;
                 document.getElementById('btn-settings').innerHTML = Sprites.ui_btn_settings;
-                document.getElementById('btn-close-settings').innerHTML = Sprites.ui_btn_settings;
+                document.getElementById('btn-close-settings').innerHTML = Sprites.ui_btn_start; // Reuse Start label for Back button
                 document.getElementById('ui-score-label').innerHTML = Sprites.ui_label_score;
                 document.getElementById('ui-wave-label').innerHTML = Sprites.ui_label_wave;
                 document.getElementById('ui-shield-label').innerHTML = Sprites.ui_label_shield;
@@ -559,9 +558,9 @@
                 this.shieldGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
                 
                 this.element.appendChild(this.shadowGroup);
-                this.element.appendChild(this.shieldGroup);
                 this.element.appendChild(this.engineGroup);
                 this.element.appendChild(this.mainGroup);
+                this.element.appendChild(this.shieldGroup);
                 this.shieldGroup.style.display = 'none';
 
                 if (sprites) this.updateSprites(sprites);
@@ -1022,9 +1021,10 @@
             let imgIndex = 3 - livesLeft;
             if (imgIndex < 1) imgIndex = 1;
             if (imgIndex > 3) imgIndex = 3;
-            overlay.style.backgroundImage = `url('svg/ui-damage-0${imgIndex}.png')`;
+            // Use inline SVG sprite for flash color
+            overlay.style.background = imgIndex === 1 ? 'rgba(255,100,0,0.4)' : imgIndex === 2 ? 'rgba(255,50,0,0.5)' : 'rgba(255,0,0,0.6)';
             overlay.classList.remove('animate');
-            void overlay.offsetWidth; // Reflow to restart CSS animation
+            void overlay.offsetWidth;
             overlay.classList.add('animate');
         }
 
@@ -1134,7 +1134,7 @@
                 entities.pods.forEach(p => {
                     if (!p.markedForDeletion &&
                         ship.x < p.x + p.width && ship.x + ship.width > p.x &&
-                        ship.y < p.y + p.height && ship.y + p.height > p.y) {
+                        ship.y < p.y + p.height && ship.y + ship.height > p.y) {
                         
                         // Apply effect
                         if (p.type === 'missile') {
@@ -1187,8 +1187,10 @@
                 if (wave === 6 && entities.escorts.length === 0) {
                     entities.escorts = [new Escort(-80), new Escort(80)];
                 }
-            } else if (wave >= 10) {
-                p.level = 3; 
+            } else if (wave <= 9) {
+                p.level = 3; p.subLevel = Math.min(3, wave - 6);
+            } else {
+                p.level = 3;
                 p.subLevel = Math.min(3, Math.floor((wave - 10) / 2) + 1);
             }
             p.updateLevelSprites();
@@ -1218,8 +1220,8 @@
                 for(let i = 0; i < scouts; i++) {
                     entities.demons.push(new Demon(Math.random() * (GAME_WIDTH - 60), Math.random() * 100 + 20, wave));
                 }
-                // One Fighter
-                entities.demons.push(new Demon(GAME_WIDTH / 2 - 30, 20, 5)); // Higher wave offset makes it fighter
+                // One Fighter (wave 6 = fighter rank)
+                entities.demons.push(new Demon(GAME_WIDTH / 2 - 30, 20, 6));
             } else {
                 // Dreadnaught intercept
                 const scouts = 8;
@@ -1230,7 +1232,7 @@
                 entities.demons.push(new DreadnaughtBoss(wave));
             }
 
-            waveUI.innerText = "Wave: " + gameState.wave;
+            waveUI.innerText = `${gameState.wave} (RANK ${p.level}.${p.subLevel})`;
         }
 
         function updateUI() {
@@ -1303,13 +1305,11 @@
             gameState.wave = 1;
             entities.player = new Terran();
             entities.bg = new DesertBG();
-            gameState.wave = 1;
             updatePersistentDamage();
             spawnWave();
-            updateUI();
-            updateUI();
             gameState.running = true;
             gameState.lastTime = performance.now();
+            updateUI();
             switchScreen('game');
             requestAnimationFrame(gameLoop);
             if (window.matchMedia("(pointer: coarse)").matches || navigator.maxTouchPoints > 0) {
