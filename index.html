@@ -786,7 +786,15 @@
 
                 this.updateTransform();
 
+                // Engine flame shifts OPPOSITE to bank (thrust opposes motion)
+                const engineCircle = this.engineGroup.querySelector('circle');
+                if (engineCircle) {
+                    const flameCx = this.width / 2 - this.bankAngle * 0.5;
+                    engineCircle.setAttribute('cx', flameCx);
+                }
+
                 if (this.cooldown > 0) this.cooldown -= dt;
+
                 
                 // Primary Fire
                 if (firing && this.cooldown <= 0) {
