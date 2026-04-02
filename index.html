@@ -276,6 +276,7 @@
             to   { filter: drop-shadow(0 0 40px var(--primary-red)) brightness(1.5); }
         }
     </style>
+    <audio id="bg-music" src="Demon_Attack_OST1.mp3" loop preload="auto"></audio>
 <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
@@ -387,6 +388,7 @@
          */
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         let masterVolume = 0.5;
+        const bgMusic = document.getElementById('bg-music');
 
         function playSound(type) {
             if (masterVolume <= 0 || audioCtx.state === 'suspended') return;
@@ -1854,6 +1856,10 @@
 
         function initGame() {
             if (audioCtx.state === 'suspended') audioCtx.resume();
+            if (bgMusic) {
+                bgMusic.volume = masterVolume;
+                bgMusic.play().catch(e => console.error("Music playback failed:", e));
+            }
             if (!Sprites.terran_scout) {
                 console.error('initGame blocked: Sprites.terran_scout not loaded yet');
                 return;
@@ -1968,6 +1974,7 @@
         if (volSlider) {
             volSlider.addEventListener('input', (e) => {
                 masterVolume = e.target.value / 100;
+                if (bgMusic) bgMusic.volume = masterVolume;
             });
         }
 
