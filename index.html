@@ -56,7 +56,7 @@
         .active { display: flex; z-index: 10; }
 
         h1 {
-            font-family: 'GyozaDEMO', sans-serif;
+            font-family: 'VientlyFlustern', sans-serif;
             font-size: 5rem;
             color: var(--primary-red);
             text-shadow: 4px 4px 0 var(--shadow-red);
@@ -125,6 +125,8 @@
         .ui-block {
             display: flex;
             flex-direction: column;
+            align-items: center;
+            justify-content: center;
             gap: 5px;
             padding: 10px;
         }
@@ -136,6 +138,7 @@
             width: 150px;
             height: 15px;
             background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,0,0,0.3);
         }
         .meter-fill {
             height: 100%;
@@ -188,11 +191,11 @@
         .cinematic-overlay.visible { opacity: 1; }
         .cinematic-overlay svg { width: 80vw; max-width: 960px; }
         .cinematic-overlay .final-score {
-            font-family: 'GyozaDEMO', sans-serif; font-size: 2.5rem;
+            font-family: 'VientlyFlustern', sans-serif; font-size: 2.5rem;
             color: #FF6306; margin-top: 20px; letter-spacing: 0.2em;
         }
         .cinematic-overlay .restart-hint {
-            font-family: 'GyozaDEMO', sans-serif; font-size: 1rem;
+            font-family: 'VientlyFlustern', sans-serif; font-size: 1rem;
             color: #888; margin-top: 30px; letter-spacing: 0.3em;
             animation: blink 1.2s step-end infinite;
         }
@@ -203,7 +206,8 @@
         }
 
         /* Rank badge in HUD */
-        #rank-badge { width: 60px; height: 60px; }
+        #rank-badge { width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; }
+        #missile-badge { width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; }
 
         /* Pod coin pickup animation */
         @keyframes coinArc {
@@ -232,7 +236,7 @@
 
         .wave-announcement {
             position: absolute; top: 35%; width: 100%; text-align: center;
-            font-family: 'GyozaDEMO', sans-serif; font-size: 8rem; color: var(--primary-red);
+            font-family: 'VientlyFlustern', sans-serif; font-size: 8rem; color: var(--primary-red);
             text-shadow: 0 0 20px #FF0000; opacity: 0; pointer-events: none; z-index: 20;
             transform: translateY(-300px) scale(0.5);
         }
@@ -256,7 +260,7 @@
         }
 
         /* Static HUD Overlays */
-        .hud-frame { position: absolute; pointer-events: none; z-index: 45; }
+        .hud-frame { position: absolute; pointer-events: none; z-index: 200; }
         .hud-left  { left: 0; top: 0; width: 304px; height: auto; }
         .hud-right { right: 0; top: 0; width: 294px; height: auto; }
         .hud-top   { top: 0; left: 50%; transform: translateX(-50%); width: 436px; height: auto; }
@@ -310,7 +314,7 @@
 
     <div id="screen-settings" class="screen hidden">
         <div class="panel">
-            <h2 style="color:var(--primary-red); font-family:'GyozaDEMO';">SYSTEM CONFIG</h2>
+            <h2 style="color:var(--primary-red); font-family:'VientlyFlustern';">SYSTEM CONFIG</h2>
             <div class="control-group">
                 <div class="ui-label" id="label-music" style="width:100px;"></div>
                 <input type="range" id="music-vol-slider" min="0" max="100" value="50">
@@ -348,9 +352,12 @@
                 </div>
             </div>
             <div class="ui-block">
-                <div class="ui-label" id="ui-shield-label"></div>
+                <div class="ui-label" id="ui-shield-label" style="color:var(--primary-red); font-family:'VientlyFlustern'; font-weight:bold;">POWER</div>
                 <div class="meter-container"><div id="shield-meter" class="meter-fill"></div></div>
-                <div id="missile-count" style="color:var(--orange); font-weight:bold; margin-top:5px;">MISSILES: 0</div>
+                <div style="display:flex; align-items:center; gap:8px; margin-top:5px;">
+                    <div id="missile-count" style="color:var(--orange); font-weight:bold;">MISSILES: 0</div>
+                    <div id="missile-badge"></div>
+                </div>
             </div>
         </div>
         
@@ -1651,7 +1658,12 @@
             const map = { 1: 'badge_scout', 2: 'badge_fighter', 3: 'badge_dreadnaught' };
             badgeEl.innerHTML = Sprites[map[level]] || '';
             const svg = badgeEl.querySelector('svg');
-            if (svg) { svg.style.width = '60px'; svg.style.height = '60px'; }
+            if (svg) { 
+                svg.setAttribute('width', '40'); 
+                svg.setAttribute('height', '40'); 
+                svg.style.width = '40px'; 
+                svg.style.height = '40px'; 
+            }
         }
 
         function showPromoted() {
@@ -1755,8 +1767,39 @@
         function updateUI() {
             const scoreDisplay = document.getElementById('score-display');
             const waveDisplay = document.getElementById('wave-display');
+            const missileBadge = document.getElementById('missile-badge');
+            const missileCount = document.getElementById('missile-count');
+
             if (scoreDisplay) scoreDisplay.innerText = gameState.score;
             if (waveDisplay) waveDisplay.innerText = `${gameState.wave} (RANK ${entities.player.level}.${entities.player.subLevel})`;
+
+            if (missileCount) missileCount.innerText = `MISSILES: ${entities.player.missiles}`;
+            if (missileBadge) {
+                // If player has missiles, show the badge. 
+                // Using badge_missile for all missile types for now
+                if (entities.player.missiles > 0) {
+                    missileBadge.innerHTML = Sprites.badge_missile || '';
+                    const svg = missileBadge.querySelector('svg');
+                    if (svg) { 
+                        svg.setAttribute('width', '32'); 
+                        svg.setAttribute('height', '32');
+                        svg.style.width = '32px'; 
+                        svg.style.height = '32px'; 
+                    }
+                } else {
+                    missileBadge.innerHTML = '';
+                }
+            }
+
+            // Sync shield meter
+            const shieldMeter = document.getElementById('shield-meter');
+            if (shieldMeter) {
+                shieldMeter.style.width = `${entities.player.shield}%`;
+                // Color shift based on health
+                if (entities.player.shield < 30) shieldMeter.style.background = '#FF0000';
+                else if (entities.player.shield < 60) shieldMeter.style.background = '#FFAA00';
+                else shieldMeter.style.background = '#00FF66';
+            }
         }
 
         const TARGET_FPS = 30;
@@ -1873,6 +1916,10 @@
         }
 
         function startGameLogic() {
+            // Reset UI Overlays
+            const ejectHud = document.getElementById('hud-eject');
+            if (ejectHud) ejectHud.classList.remove('active');
+
             worldGroup.innerHTML = '';
             bulletPool.reset();
             particlePool.reset();
