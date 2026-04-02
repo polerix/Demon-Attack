@@ -1610,8 +1610,14 @@
                             b.y < d.y + d.height && b.y + b.height > d.y) {
                             b.disable();
                             d.markedForDeletion = true;
+                            const oldScore = gameState.score;
                             gameState.score += 10 * gameState.wave;
+                            // Check for 10,000 pt intervals for a bonus life
+                            if (Math.floor(gameState.score / 10000) > Math.floor(oldScore / 10000)) {
+                                addTeleport();
+                            }
                             createExplosion(d.x, d.y);
+                            updateUI();
                         }
                     }
                 });
