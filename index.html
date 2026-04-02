@@ -320,7 +320,9 @@
 
         <div id="damage-overlay" class="damage-flash"></div>
         <div id="persistent-damage" style="position: absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:6; display:none;"></div>
-        <div id="wave-announcement" class="wave-announcement">WAVE 1</div>
+        <div id="wave-announcement" class="wave-announcement">
+            <img src="SVG/hud_INCOMINGWAVE.svg" style="width:100%; height:auto;">
+        </div>
         <div id="game-ui">
             <div class="ui-block">
                 <div class="ui-label" id="ui-score-label"></div>
@@ -1708,10 +1710,6 @@
             updateRankBadge(p.level);
 
             const waveLabel = document.getElementById('wave-announcement');
-            waveLabel.innerText = wave >= 10 ? "WARNING: DREADNAUGHT" : "WAVE " + wave;
-            waveLabel.style.fontSize = wave >= 10 ? '5rem' : '8rem';
-            if (wave >= 10) waveLabel.style.color = '#FFFFFF'; // White for boss
-            else waveLabel.style.color = 'var(--primary-red)';
             waveLabel.classList.remove('animate');
             void waveLabel.offsetWidth; 
             waveLabel.classList.add('animate');
