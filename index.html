@@ -459,7 +459,7 @@
         const Sprites = {
             terran_scout: '', terran_scout_shield: '', terran_scout_shadow: '',
             terran_fighter: '', terran_fighter_shield: '', terran_fighter_shadow: '',
-            terran_dreadnought: '', terran_dreadnought_shield: '', terran_dreadnaught_shadow: '',
+            terran_dreadnought: '', terran_dreadnought_shield: '', terran_dreadnought_shadow: '',
             terran_bullet: '', terran_missile: '', terran_missile_shadow: '',
             demon_scout: '', demon_scout_shield: '', demon_scout_shadow: '',
             demon_fighter: '', demon_fighter_shield: '', demon_fighter_shadow: '',
@@ -486,7 +486,7 @@
                 { id: 'terran_fighter_shadow', url: 'SVG/terran_Fighter_Shadow.svg' },
                 { id: 'terran_dreadnought', url: 'SVG/terran_dreadnought.svg' },
                 { id: 'terran_dreadnought_shield', url: 'SVG/terran_Dreadnought_Shield.svg' },
-                { id: 'terran_dreadnaught_shadow', url: 'SVG/terran_Dreadnaught_Shadow.svg' },
+                { id: 'terran_dreadnought_shadow', url: 'SVG/terran_Dreadnaught_Shadow.svg' },
                 { id: 'terran_bullet', url: 'SVG/terran_Bullet.svg' },
                 { id: 'terran_missile', url: 'SVG/terran_Missile.svg' },
                 { id: 'terran_missile_shadow', url: 'SVG/terran_Missile_Shadow.svg' },
@@ -718,8 +718,16 @@
 
             updateTransform() {
                 const perspective = Math.max(0.2, 0.3 + (this.y / 600) * 0.7);
-                this.shadowGroup.setAttribute("transform", `translate(0, ${this.z}) scale(${1 + this.z/200})`);
-                this.shadowGroup.style.opacity = Math.max(0, 0.5 - this.z/400);
+
+                // Shadow: simulate ~100m altitude.
+                // Shadow is scaled to ~25% of ship size and offset below the ship
+                // by a fixed distance (90px in world space) to suggest ground separation.
+                // It is purely visual — collision uses entity.x/y/width/height only.
+                const SHADOW_SCALE   = 0.25; // 25% of ship = far-below-surface look
+                const SHADOW_OFFSET  = 90;   // px below ship baseline in world space
+                this.shadowGroup.setAttribute('transform',
+                    `translate(${this.width * 0.375}, ${SHADOW_OFFSET}) scale(${SHADOW_SCALE})`);
+                this.shadowGroup.style.opacity = '0.35';
                 // Pivot rotation around nose tip (center-x, top-y of bounding box)
                 const pivotX = this.width / 2;
                 this.mainGroup.setAttribute("transform", `rotate(${this.angle}, ${pivotX}, 0)`);
@@ -899,9 +907,9 @@
             updateLevelSprites() {
                 const rank = this.level === 1 ? 'scout' : (this.level === 2 ? 'fighter' : 'dreadnought');
                 this.updateSprites({
-                    base: Sprites[`terran_${rank}`],
+                    base:   Sprites[`terran_${rank}`],
                     shield: Sprites[`terran_${rank}_shield`],
-                    shadow: Sprites[`terran_${rank}_shadow`]
+                    shadow: Sprites[`terran_${rank}_shadow`]  // key always uses 'dreadnought'
                 });
                 this.speed = 400 + (this.level - 1) * 100 + (this.subLevel - 1) * 50;
                 // Re-run full engine setup to refresh gradient color on rank change
