@@ -857,21 +857,26 @@
                 };
                 window.addEventListener('resize', this.resizeListener);
 
-                // Mars Topo Sphere
-                // 10 units radius, high poly count for smooth curves
-                const geometry = new THREE.SphereGeometry(10, 64, 64);
+                // Mars Topo Cylinder (Endless Treadmill Horizon)
+                // 15 radius, 60 width, high poly count for smooth curves. Avoids polar pinching!
+                const geometry = new THREE.CylinderGeometry(15, 15, 60, 64);
                 const textureLoader = new THREE.TextureLoader();
                 
                 // Use our natively fetched topology
                 const topoMap = textureLoader.load('SVG/mars_topo.png');
+                topoMap.wrapS = THREE.RepeatWrapping;
+                topoMap.wrapT = THREE.RepeatWrapping;
+
                 const material = new THREE.MeshStandardMaterial({
                     map: topoMap,
                     roughness: 0.9,
                     metalness: 0.1
                 });
 
-                this.sphere = new THREE.Mesh(geometry, material);
-                this.scene.add(this.sphere);
+                this.planetMesh = new THREE.Mesh(geometry, material);
+                // Rotate cylinder so its round face rolls towards the camera
+                this.planetMesh.rotation.z = Math.PI / 2;
+                this.scene.add(this.planetMesh);
 
                 // Lighting
                 const ambientLight = new THREE.AmbientLight(0x4a1800, 0.8); // Amber atmosphere
@@ -885,9 +890,9 @@
             }
 
             update(dt, bankAngle = 0, playerZ = 0) {
-                // Forward Flight (Planet rolling toward camera)
+                // Forward Flight: Rotate the cylinder TOWARDS the camera (+=) so texture moves DOWN.
                 const forwardSpeed = this.BASE_SPEED + (playerZ * 0.005);
-                this.sphere.rotation.x -= forwardSpeed * dt;
+                this.planetMesh.rotation.x += forwardSpeed * dt;
 
                 // Sync the WebGL Camera's Z-axis rotation to the player's 2D bank angle!
                 // bankAngle comes in as -30 to 30 degrees. Convert to radians.
