@@ -556,11 +556,18 @@
                 await Promise.all(loadPromises);
                 console.log("Assets loaded successfully.");
 
-                // Inject UI Graphics
+                // Inject button SVGs — force pointer-events:none so the <button> element handles clicks
+                const injectBtn = (id, sprite) => {
+                    const btn = document.getElementById(id);
+                    if (!btn || !sprite) return;
+                    btn.innerHTML = sprite;
+                    const s = btn.querySelector('svg');
+                    if (s) s.style.pointerEvents = 'none';
+                };
+                injectBtn('btn-start',          Sprites.ui_btn_start);
+                injectBtn('btn-settings',        Sprites.ui_btn_settings);
+                injectBtn('btn-close-settings',  Sprites.ui_btn_start);
                 document.getElementById('main-logo').innerHTML = Sprites.ui_logo;
-                document.getElementById('btn-start').innerHTML = Sprites.ui_btn_start;
-                document.getElementById('btn-settings').innerHTML = Sprites.ui_btn_settings;
-                document.getElementById('btn-close-settings').innerHTML = Sprites.ui_btn_start; // Reuse Start label for Back button
                 document.getElementById('ui-score-label').innerHTML = Sprites.ui_label_score;
                 document.getElementById('ui-wave-label').innerHTML = Sprites.ui_label_wave;
                 document.getElementById('ui-shield-label').innerHTML = Sprites.ui_label_shield;
@@ -768,14 +775,18 @@
         // ─────────────────────────────────────────────────────────────────
         class DesertBG {
             constructor() {
-                // We drive scrolling via the game-viewport div, not the SVG bg-group
-                this.viewport = document.getElementById('game-viewport');
-                this.bgEl     = null;
-                this.tintEl   = null;
-                this.posY     = 0;   // pixels scrolled (wraps at image height)
-                this.posX     = 0;   // parallax X
-                this.speed    = 60;  // px/sec scroll speed (felt, not noise-space)
-                this.imgH     = 768; // approximate natural height of the image
+                // 'screen-game' is the actual container for the game canvas
+                this.container = document.getElementById('screen-game');
+                this.bgEl   = null;
+                this.tintEl = null;
+                this.posY   = 0;   // pixels scrolled (wraps at image height)
+                this.posX   = 0;   // parallax X
+                this.speed  = 60;  // px/sec scroll speed
+                this.imgH   = 768; // approximate natural height of the image
+
+                // Remove any stale background wrap from a previous game session
+                const stale = document.getElementById('topo-bg-wrap');
+                if (stale && stale.parentNode) stale.parentNode.removeChild(stale);
 
                 // Build two absolutely-positioned divs BEHIND the SVG
                 const wrap = document.createElement('div');
@@ -811,7 +822,11 @@
 
                 // Insert before the game SVG so it sits behind everything
                 const svg = document.getElementById('game-svg');
-                this.viewport.insertBefore(wrap, svg);
+                if (svg && this.container) {
+                    this.container.insertBefore(wrap, svg);
+                } else if (this.container) {
+                    this.container.appendChild(wrap);
+                }
 
                 // Clear the SVG bg-group (nothing to draw there now)
                 const bgGroup = document.getElementById('bg-group');
@@ -1697,6 +1712,7 @@
         function initGame() {
             if (audioCtx.state === 'suspended') audioCtx.resume();
             if (!Sprites.terran_scout) {
+                console.error('initGame blocked: Sprites.terran_scout not loaded yet');
                 return;
             }
             startGameLogic();
