@@ -615,8 +615,10 @@
                     svg.style.height = '100%';
                 }
 
-                // Thruster glow — anchored at bottom-center of the div.
-                // After 90° rotation the bottom becomes the trailing exhaust port.
+                // Thruster glow placement:
+                //   Terran SVG faces UP  (engine at bottom of div) → use 'bottom' offset
+                //   Demon  SVG faces DOWN (engine at top  of div) → use 'top'    offset
+                // After each ship's 90° rotation the chosen edge becomes the trailing exhaust port.
                 const thrustColors = {
                     terran_scout:   '#FFCC00',
                     terran_fighter: '#FF6600',
@@ -625,10 +627,12 @@
                 };
                 const tc = thrustColors[ship.id] || '#FF6600';
                 const thrustSize = Math.round(ship.s * 0.28);
+                const offset = `${-thrustSize * 0.4}px`;
+                const edgeProp = isDemon ? 'top' : 'bottom';
                 const thruster = document.createElement('div');
                 thruster.style.cssText = [
                     'position:absolute',
-                    `bottom:${-thrustSize * 0.4}px`,
+                    `${edgeProp}:${offset}`,
                     `left:50%`,
                     `transform:translateX(-50%)`,
                     `width:${thrustSize}px`,
@@ -639,6 +643,7 @@
                     `animation:thrusterPulse 0.15s ease-in-out infinite alternate`
                 ].join(';');
                 el.appendChild(thruster);
+
 
                 el.style.animation = `flyAcross${ship.dir === 1 ? 'Right' : 'Left'} ${ship.dur}s linear infinite`;
                 el.style.animationDelay = `${ship.delay}s`;
