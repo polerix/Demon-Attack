@@ -234,13 +234,13 @@
             pointer-events: none;
         }
 
-        .wave-announcement {
+        .wave-announcement, .bonus-announcement {
             position: absolute; top: 35%; width: 100%; text-align: center;
             font-family: 'VientlyFlustern', sans-serif; font-size: 8rem; color: var(--primary-red);
             text-shadow: 0 0 20px #FF0000; opacity: 0; pointer-events: none; z-index: 20;
             transform: translateY(-300px) scale(0.5);
         }
-        .wave-announcement.animate {
+        .wave-announcement.animate, .bonus-announcement.animate {
             animation: dropZoom 2.8s cubic-bezier(0.25, 1, 0.5, 1) forwards;
         }
         @keyframes dropZoom {
@@ -339,10 +339,16 @@
         <div id="wave-announcement" class="wave-announcement">
             <img src="SVG/hud_INCOMINGWAVE.svg" style="width:100%; height:auto;">
         </div>
+        <div id="bonus-announcement" class="bonus-announcement">
+            <img src="SVG/hud_BONUS.svg" style="width:100%; height:auto;">
+        </div>
         <div id="game-ui">
             <div class="ui-block">
                 <div class="ui-label" id="ui-score-label"></div>
-                <div id="score-display" class="ui-value">0</div>
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <div id="score-display" class="ui-value">0</div>
+                    <div id="teleport-lives" style="display:flex; gap:4px;"></div>
+                </div>
             </div>
             <div class="ui-block">
                 <div class="ui-label" id="ui-wave-label"></div>
@@ -560,7 +566,9 @@
                 { id: 'ui_logo', url: 'SVG/ui-Demon-Attack.svg' },
                 { id: 'ui_btn_start', url: 'SVG/ui_Start_Game_W.svg' },
                 { id: 'ui_btn_settings', url: 'SVG/ui_Settings_W.svg' },
-                { id: 'ui_label_score', url: 'SVG/ui_Bonus_W.svg' }, 
+                { id: 'ui_label_score', url: 'SVG/ui_Score_W.svg' },
+                { id: 'ui_label_bonus', url: 'SVG/ui_Bonus_W.svg' },
+                { id: 'hud_bonus',      url: 'SVG/hud_BONUS.svg' }, 
                 { id: 'ui_label_wave', url: 'SVG/ui_Level_Up_W.svg' },
                 { id: 'ui_label_shield', url: 'SVG/ui_Shields.svg' },
                 { id: 'ui_label_music', url: 'SVG/ui_Music_W.svg' },
@@ -1314,7 +1322,15 @@
                 
                 if (!this.parts[2].active) {
                     this.markedForDeletion = true;
+                    const oldScore = gameState.score;
                     gameState.score += 5000;
+                    
+                    // Check for 10,000 pt intervals for a bonus life
+                    if (Math.floor(gameState.score / 10000) > Math.floor(oldScore / 10000)) {
+                        addTeleport();
+                    }
+
+                    updateUI();
                     for(let i=0; i<8; i++) setTimeout(() => createExplosion(this.x + Math.random()*120, this.y + Math.random()*120), i*100);
                 }
                 return true;
@@ -1792,14 +1808,29 @@
             const waveDisplay = document.getElementById('wave-display');
             const missileBadge = document.getElementById('missile-badge');
             const missileCount = document.getElementById('missile-count');
+            const teleportLives = document.getElementById('teleport-lives');
 
             if (scoreDisplay) scoreDisplay.innerText = gameState.score;
             if (waveDisplay) waveDisplay.innerText = `${gameState.wave} (RANK ${entities.player.level}.${entities.player.subLevel})`;
 
+            // Teleport (Lives) Badges
+            if (teleportLives) {
+                const rankMap = { 1: 'badge_scout', 2: 'badge_fighter', 3: 'badge_dreadnaught' };
+                const badgeKey = rankMap[entities.player.level] || 'badge_scout';
+                let html = '';
+                // Show up to 5 icons; then maybe just a multiplier if we have tons (unlikely in this game)
+                for (let i = 0; i < Math.min(6, gameState.teleports); i++) {
+                    html += `<div style="width:24px; height:24px; opacity:0.8;">${Sprites[badgeKey]}</div>`;
+                }
+                teleportLives.innerHTML = html;
+                teleportLives.querySelectorAll('svg').forEach(s => {
+                    s.setAttribute('width', '24');
+                    s.setAttribute('height', '24');
+                });
+            }
+
             if (missileCount) missileCount.innerText = `MISSILES: ${entities.player.missiles}`;
             if (missileBadge) {
-                // If player has missiles, show the badge. 
-                // Using badge_missile for all missile types for now
                 if (entities.player.missiles > 0) {
                     missileBadge.innerHTML = Sprites.badge_missile || '';
                     const svg = missileBadge.querySelector('svg');
@@ -1818,10 +1849,25 @@
             const shieldMeter = document.getElementById('shield-meter');
             if (shieldMeter) {
                 shieldMeter.style.width = `${entities.player.shield}%`;
-                // Color shift based on health
                 if (entities.player.shield < 30) shieldMeter.style.background = '#FF0000';
                 else if (entities.player.shield < 60) shieldMeter.style.background = '#FFAA00';
                 else shieldMeter.style.background = '#00FF66';
+            }
+        }
+
+        function addTeleport() {
+            gameState.teleports++;
+            showBonus();
+            updateUI();
+            playSound('teleport_earned'); // Placeholder for a nice sound
+        }
+
+        function showBonus() {
+            const announce = document.getElementById('bonus-announcement');
+            if (announce) {
+                announce.classList.remove('animate');
+                void announce.offsetWidth; // trigger reflow
+                announce.classList.add('animate');
             }
         }
 
