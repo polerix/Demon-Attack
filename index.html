@@ -437,7 +437,7 @@
         let gameState = {
             running: false,
             score: 0,
-            lives: 3,
+            teleports: 3,
             wave: 1,
             lastTime: 0
         };
@@ -1640,7 +1640,7 @@
                         } else {
                             if (ship === entities.player) {
                                 ship.shields = Math.min(100, ship.shields + 50);
-                                updatePersistentDamage();
+                                document.getElementById('shield-meter').style.width = ship.shields + '%';
                             }
                         }
                         p.markedForDeletion = true;
@@ -1900,11 +1900,10 @@
             bulletPool = new ObjectPool(() => new Projectile(), 200);
             particlePool = new ObjectPool(() => new Particle(), 150);
             gameState.score = 0;
-            gameState.lives = 3;
+            gameState.teleports = 3;
             gameState.wave = 1;
             entities.player = new Terran();
             entities.bg = new DesertBG();
-            updatePersistentDamage();
             spawnWave();
             gameState.running = true;
             gameState.lastTime = performance.now();
