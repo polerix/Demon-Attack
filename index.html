@@ -649,32 +649,37 @@
 
             try {
                 const loadPromises = assets.map(async (asset) => {
-                    const response = await fetch(asset.url);
-                    if (!response.ok) {
-                        console.warn(`Failed to load ${asset.url}, substituting empty graphic.`);
-                        Sprites[asset.id] = '';
-                        return;
-                    }
-                    let svgText = await response.text();
-                    
-                    // Scope generic SVG classes to prevent color collisions
-                    svgText = svgText.replace(/\.cls-/g, `.${asset.id}_cls-`);
-                    svgText = svgText.replace(/class="cls-/g, `class="${asset.id}_cls-`);
+                    try {
+                        const response = await fetch(asset.url);
+                        if (!response.ok) {
+                            console.warn(`Failed to load ${asset.url}, status: ${response.status}`);
+                            Sprites[asset.id] = ''; 
+                            return;
+                        }
+                        let svgText = await response.text();
+                        
+                        // Scope generic SVG classes to prevent color collisions
+                        svgText = svgText.replace(/\.cls-/g, `.${asset.id}_cls-`);
+                        svgText = svgText.replace(/class="cls-/g, `class="${asset.id}_cls-`);
 
-                    const parser = new DOMParser();
-                    const doc = parser.parseFromString(svgText, 'image/svg+xml');
-                    const svgEl = doc.querySelector('svg');
-                    if (svgEl) {
-                        svgEl.removeAttribute('width');
-                        svgEl.removeAttribute('height');
-                        Sprites[asset.id] = svgEl.outerHTML;
-                    } else {
-                        Sprites[asset.id] = svgText;
+                        const parser = new DOMParser();
+                        const doc = parser.parseFromString(svgText, 'image/svg+xml');
+                        const svgEl = doc.querySelector('svg');
+                        if (svgEl) {
+                            svgEl.removeAttribute('width');
+                            svgEl.removeAttribute('height');
+                            Sprites[asset.id] = svgEl.outerHTML;
+                        } else {
+                            Sprites[asset.id] = svgText;
+                        }
+                    } catch (e) {
+                        console.warn(`Fetch blocked/failed for ${asset.url}:`, e);
+                        Sprites[asset.id] = ''; // Fallback to empty
                     }
                 });
 
                 await Promise.all(loadPromises);
-                console.log("Assets loaded successfully.");
+                console.log("Assets loaded (with potential fallbacks).");
 
                 // Inject button SVGs — force pointer-events:none so the <button> element handles clicks
                 const injectBtn = (id, sprite) => {
@@ -956,19 +961,22 @@
                 window.addEventListener('resize', this.resizeListener);
 
                 // Mars Topo Cylinder (Endless Treadmill Horizon)
-                // 15 radius, 60 width, high poly count for smooth curves. Avoids polar pinching!
                 const geometry = new THREE.CylinderGeometry(15, 15, 60, 64);
                 const textureLoader = new THREE.TextureLoader();
                 
-                // Use our natively fetched topology
-                const topoMap = textureLoader.load('SVG/mars_topo.png');
-                topoMap.wrapS = THREE.RepeatWrapping;
-                topoMap.wrapT = THREE.RepeatWrapping;
-
                 const material = new THREE.MeshStandardMaterial({
-                    map: topoMap,
                     roughness: 0.9,
-                    metalness: 0.1
+                    metalness: 0.1,
+                    color: 0x4a1800 // Fallback color if texture fails
+                });
+
+                textureLoader.load('SVG/mars_topo.png', (texture) => {
+                    texture.wrapS = THREE.RepeatWrapping;
+                    texture.wrapT = THREE.RepeatWrapping;
+                    material.map = texture;
+                    material.needsUpdate = true;
+                }, undefined, (err) => {
+                    console.warn("Mars texture load failed (CORS?):", err);
                 });
 
                 this.planetMesh = new THREE.Mesh(geometry, material);
