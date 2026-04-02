@@ -225,6 +225,14 @@
             animation: coinArc 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
         }
 
+        #webgl-bg {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            z-index: 1; /* Sits beneath the SVG */
+            pointer-events: none;
+        }
+
         .wave-announcement {
             position: absolute; top: 35%; width: 100%; text-align: center;
             font-family: 'GyozaDEMO', sans-serif; font-size: 8rem; color: var(--primary-red);
@@ -271,6 +279,8 @@
             to   { filter: drop-shadow(0 0 40px var(--primary-red)) brightness(1.5); }
         }
     </style>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
 
@@ -342,11 +352,11 @@
             </div>
         </div>
         
-        <svg id="game-svg" viewBox="0 0 800 600" preserveAspectRatio="xMidYMid meet">
+        <canvas id="webgl-bg"></canvas>
+        <svg id="game-svg" viewBox="0 0 800 600" preserveAspectRatio="xMidYMid meet" style="z-index:2; position:absolute; top:0; left:0; width:100%; height:100%;">
             <defs>
                 <circle id="spark" cx="0" cy="0" r="3" fill="#FFAA00" filter="drop-shadow(0 0 5px #FFAA00)" />
             </defs>
-            <g id="bg-group"></g>
             <g id="world-group"></g>
         </svg>
 
@@ -824,107 +834,67 @@
         // ─────────────────────────────────────────────────────────────────
         class DesertBG {
             constructor() {
-                const NS = 'http://www.w3.org/2000/svg';
-                this.group = document.getElementById('bg-group');
+                this.canvas = document.getElementById('webgl-bg');
+                
+                // WebGL Init
+                this.scene = new THREE.Scene();
+                this.scene.background = new THREE.Color(0x050100);
 
-                // Remove old HTML div wrap if it lingered from the previous approach
-                const stale = document.getElementById('topo-bg-wrap');
-                if (stale && stale.parentNode) stale.parentNode.removeChild(stale);
+                // Camera looking directly downward at the planet curve
+                this.camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
+                this.camera.position.set(0, 0, 12);
+                this.camera.lookAt(0, 0, 0);
 
-                // ── Scroll state ──────────────────────────────────────────
-                this.posY  = 0;    // accumulated Y scroll in SVG units
-                this.posX  = 0;    // accumulated X scroll (bank parallax)
-                this.BASE_SPEED = 55;  // px/sec at normal cruise altitude
+                this.renderer = new THREE.WebGLRenderer({ canvas: this.canvas, antialias: true, alpha: true });
+                this.renderer.setSize(window.innerWidth, window.innerHeight);
+                this.renderer.setPixelRatio(window.devicePixelRatio);
 
-                // ── SVG defs: pattern + gradient tint ────────────────────
-                const gameSvg = document.getElementById('game-svg');
-                let defs = gameSvg.querySelector('defs');
-                // Ensure defs exists (it does in our markup, but guard anyway)
-                if (!defs) {
-                    defs = document.createElementNS(NS, 'defs');
-                    gameSvg.insertBefore(defs, gameSvg.firstChild);
-                }
+                // Responsive sizing
+                this.resizeListener = () => {
+                    this.camera.aspect = window.innerWidth / window.innerHeight;
+                    this.camera.updateProjectionMatrix();
+                    this.renderer.setSize(window.innerWidth, window.innerHeight);
+                };
+                window.addEventListener('resize', this.resizeListener);
 
-                // Clean up any previous pattern/gradient from a prior game session
-                ['topoBGPat', 'amberTintGrad'].forEach(id => {
-                    const el = defs.querySelector(`#${id}`);
-                    if (el) defs.removeChild(el);
+                // Mars Topo Sphere
+                // 10 units radius, high poly count for smooth curves
+                const geometry = new THREE.SphereGeometry(10, 64, 64);
+                const textureLoader = new THREE.TextureLoader();
+                
+                // Use our natively fetched topology
+                const topoMap = textureLoader.load('SVG/mars_topo.png');
+                const material = new THREE.MeshStandardMaterial({
+                    map: topoMap,
+                    roughness: 0.9,
+                    metalness: 0.1
                 });
 
-                // Scrolling topo-map pattern
-                // patternUnits=userSpaceOnUse → pattern coords match SVG viewport (800×600)
-                // The image is sized to 800×600 (cover), pattern repeats seamlessly
-                this.pattern = document.createElementNS(NS, 'pattern');
-                this.pattern.setAttribute('id', 'topoBGPat');
-                this.pattern.setAttribute('patternUnits', 'userSpaceOnUse');
-                this.pattern.setAttribute('width',  '800');
-                this.pattern.setAttribute('height', '600');
-                // patternTransform shifts the pattern each frame to simulate scroll
-                this.pattern.setAttribute('patternTransform', 'translate(0,0)');
+                this.sphere = new THREE.Mesh(geometry, material);
+                this.scene.add(this.sphere);
 
-                const img = document.createElementNS(NS, 'image');
-                img.setAttribute('href', 'SVG/mars_topo.png');
-                img.setAttribute('x', '0'); img.setAttribute('y', '0');
-                img.setAttribute('width', '800'); img.setAttribute('height', '600');
-                img.setAttribute('preserveAspectRatio', 'xMidYMid slice');
-                this.pattern.appendChild(img);
-                defs.appendChild(this.pattern);
+                // Lighting
+                const ambientLight = new THREE.AmbientLight(0x4a1800, 0.8); // Amber atmosphere
+                this.scene.add(ambientLight);
 
-                // Amber/dark gradient tint (sits over image, under entities)
-                const grad = document.createElementNS(NS, 'linearGradient');
-                grad.setAttribute('id', 'amberTintGrad');
-                grad.setAttribute('x1','0'); grad.setAttribute('y1','0');
-                grad.setAttribute('x2','0'); grad.setAttribute('y2','1');
-                const stops = [
-                    ['0%',   '#1A0D00', '0.82'],
-                    ['40%',  '#2E1600', '0.75'],
-                    ['100%', '#0D0900', '0.88']
-                ];
-                stops.forEach(([offset, color, opacity]) => {
-                    const stop = document.createElementNS(NS, 'stop');
-                    stop.setAttribute('offset', offset);
-                    stop.setAttribute('stop-color', color);
-                    stop.setAttribute('stop-opacity', opacity);
-                    grad.appendChild(stop);
-                });
-                defs.appendChild(grad);
+                const dirLight = new THREE.DirectionalLight(0xff7722, 1.2); // Intense directional sun
+                dirLight.position.set(5, 8, 10);
+                this.scene.add(dirLight);
 
-                // ── Populate bg-group (guaranteed layer 0 — drawn before all entities) ──
-                this.group.innerHTML = '';
-
-                // Layer 1: topo map image via pattern
-                this.bgRect = document.createElementNS(NS, 'rect');
-                this.bgRect.setAttribute('x','-1000'); this.bgRect.setAttribute('y','-1000');
-                this.bgRect.setAttribute('width','3000'); this.bgRect.setAttribute('height','3000');
-                this.bgRect.setAttribute('fill','url(#topoBGPat)');
-                this.bgRect.setAttribute('opacity','0.60');
-                this.group.appendChild(this.bgRect);
-
-                // Layer 2: amber tint gradient over the map
-                this.tintRect = document.createElementNS(NS, 'rect');
-                this.tintRect.setAttribute('x','-1000'); this.tintRect.setAttribute('y','-1000');
-                this.tintRect.setAttribute('width','3000'); this.tintRect.setAttribute('height','3000');
-                this.tintRect.setAttribute('fill','url(#amberTintGrad)');
-                this.group.appendChild(this.tintRect);
+                this.BASE_SPEED = 0.2; 
             }
 
-            // bankAngle: player bank angle (±degrees) for horizontal parallax
-            // playerZ:   player z-altitude — positive = boost (faster scroll), negative = brake
             update(dt, bankAngle = 0, playerZ = 0) {
-                // Forward scroll: base speed modulated by altitude (boost scrolls faster)
-                const forwardSpeed = this.BASE_SPEED + playerZ * 0.8;
-                this.posY += forwardSpeed * dt;
+                // Forward Flight (Planet rolling toward camera)
+                const forwardSpeed = this.BASE_SPEED + (playerZ * 0.005);
+                this.sphere.rotation.x -= forwardSpeed * dt;
 
-                // Horizontal parallax: bank right → map drifts left, and vice versa
-                this.posX -= bankAngle * 0.9 * dt;
+                // Sync the WebGL Camera's Z-axis rotation to the player's 2D bank angle!
+                // bankAngle comes in as -30 to 30 degrees. Convert to radians.
+                const targetZ = bankAngle * (Math.PI / 180) * 0.7; 
+                this.camera.rotation.z += (targetZ - this.camera.rotation.z) * 8 * dt;
 
-                // Wrap within 600px (pattern height) to keep numbers bounded
-                this.posY = this.posY % 600;
-                this.posX = this.posX % 800;
-
-                // A single setAttribute drives the entire scroll — near-zero CPU cost
-                this.pattern.setAttribute('patternTransform',
-                    `translate(${this.posX.toFixed(1)}, ${this.posY.toFixed(1)})`);
+                this.renderer.render(this.scene, this.camera);
             }
         }
 
