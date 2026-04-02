@@ -200,6 +200,10 @@
             animation: blink 1.2s step-end infinite;
         }
         @keyframes blink { 50% { opacity: 0; } }
+        @keyframes thrusterPulse {
+            from { transform: translateX(-50%) scale(0.75); opacity: 0.7; }
+            to   { transform: translateX(-50%) scale(1.25); opacity: 1.0; }
+        }
 
         /* Rank badge in HUD */
         #rank-badge { width: 60px; height: 60px; }
@@ -594,26 +598,51 @@
 
             ships.forEach(ship => {
                 const el = document.createElement('div');
-                el.style.position = 'absolute';
+                el.style.cssText = 'position:absolute; overflow:visible;';
                 el.style.top = ship.y + '%';
                 el.style.width = ship.s + 'px';
                 el.style.height = ship.s + 'px';
                 el.style.left = ship.dir === 1 ? '-200px' : '110vw';
-                // Demons face DOWN in their SVG (they dive at player), so rotation is flipped vs Terrans
+                // Demons face DOWN in their SVG, rotation is flipped vs Terrans
                 const isDemon = ship.id.startsWith('demon');
                 const rotDir = isDemon ? (ship.dir === 1 ? -90 : 90) : (ship.dir === 1 ? 90 : -90);
                 el.style.transform = `rotate(${rotDir}deg)`;
-                
+
                 el.innerHTML = Sprites[ship.id];
                 const svg = el.querySelector('svg');
-                if(svg) { 
-                    svg.style.width = '100%'; 
+                if (svg) {
+                    svg.style.width  = '100%';
                     svg.style.height = '100%';
                 }
 
+                // Thruster glow — anchored at bottom-center of the div.
+                // After 90° rotation the bottom becomes the trailing exhaust port.
+                const thrustColors = {
+                    terran_scout:   '#FFCC00',
+                    terran_fighter: '#FF6600',
+                    demon_scout:    '#FF2200',
+                    demon_fighter:  '#FFAA00'
+                };
+                const tc = thrustColors[ship.id] || '#FF6600';
+                const thrustSize = Math.round(ship.s * 0.28);
+                const thruster = document.createElement('div');
+                thruster.style.cssText = [
+                    'position:absolute',
+                    `bottom:${-thrustSize * 0.4}px`,
+                    `left:50%`,
+                    `transform:translateX(-50%)`,
+                    `width:${thrustSize}px`,
+                    `height:${thrustSize}px`,
+                    `border-radius:50%`,
+                    `background:radial-gradient(circle, ${tc} 0%, ${tc}88 40%, transparent 100%)`,
+                    'pointer-events:none',
+                    `animation:thrusterPulse 0.15s ease-in-out infinite alternate`
+                ].join(';');
+                el.appendChild(thruster);
+
                 el.style.animation = `flyAcross${ship.dir === 1 ? 'Right' : 'Left'} ${ship.dur}s linear infinite`;
                 el.style.animationDelay = `${ship.delay}s`;
-                
+
                 container.appendChild(el);
             });
         }
@@ -1495,8 +1524,18 @@
             if (waveDisplay) waveDisplay.innerText = `${gameState.wave} (RANK ${entities.player.level}.${entities.player.subLevel})`;
         }
 
+        const TARGET_FPS = 30;
+        const FRAME_MS  = 1000 / TARGET_FPS;
+        let   lastFrameTime = 0;
+
         function gameLoop(timestamp) {
             if (!gameState.running) return;
+            // 30 fps cap — skip frame if not enough time has passed
+            if (timestamp - lastFrameTime < FRAME_MS) {
+                requestAnimationFrame(gameLoop);
+                return;
+            }
+            lastFrameTime = timestamp;
             let dt = (timestamp - gameState.lastTime) / 1000;
             if (dt > 0.1) dt = 0.1;
             gameState.lastTime = timestamp;
