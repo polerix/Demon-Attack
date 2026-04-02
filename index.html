@@ -16,10 +16,6 @@
         }
 
         @font-face {
-            font-family: 'GyozaDEMO';
-            src: local('GyozaDEMO'), local('Arial Bold');
-        }
-        @font-face {
             font-family: 'VientlyFlustern';
             src: local('Viently Flustin Trial'), local('Arial');
         }
@@ -243,6 +239,48 @@
         .wave-announcement.animate, .bonus-announcement.animate {
             animation: dropZoom 2.8s cubic-bezier(0.25, 1, 0.5, 1) forwards;
         }
+
+        /* Tactical HUD Grids */
+        .hud-grid { 
+            position: absolute; top: 0; pointer-events: none; z-index: 40; 
+            opacity: 0; transition: opacity 0.1s;
+        }
+        .hud-grid-left { left: 0; width: 304px; height: auto; }
+        .hud-grid-right { right: 0; width: 294px; height: auto; }
+        .grid-flash { animation: gridPulse 0.4s ease-out forwards; }
+        @keyframes gridPulse {
+            0% { opacity: 0.8; filter: brightness(2); }
+            100% { opacity: 0; filter: brightness(1); }
+        }
+
+        /* Left-side Control Toolbar */
+        #hud-side-controls {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            z-index: 300;
+            pointer-events: all;
+        }
+        .side-btn {
+            width: 50px;
+            height: 50px;
+            background: rgba(0,0,0,0.8);
+            border: 2px solid var(--primary-red);
+            padding: 10px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+        .side-btn:hover { background: var(--primary-red); }
+        .side-btn:hover svg { fill: #000; }
+        .side-btn svg { width: 100%; height: 100%; fill: var(--primary-red); }
+
         @keyframes dropZoom {
             0% { transform: translateY(-300px) scale(0.5); opacity: 0; }
             15% { transform: translateY(0) scale(1.0); opacity: 1; filter: drop-shadow(0 0 30px #FF0000); }
@@ -315,15 +353,14 @@
     <div id="screen-settings" class="screen hidden">
         <div class="panel">
             <h2 style="color:var(--primary-red); font-family:'VientlyFlustern';">SYSTEM CONFIG</h2>
-            <div class="control-group">
-                <div class="ui-label" id="label-music" style="width:100px;"></div>
-                <input type="range" id="music-vol-slider" min="0" max="100" value="50">
+            <div style="display:flex; align-items:center; gap:20px;">
+                <div class="ui-label" id="label-sfx" style="width:100px; color:var(--primary-red); font-size:1.2rem; font-family:'VientlyFlustern';">SOUND FX</div>
+                <input type="range" id="sfx-vol-slider" min="0" max="100" value="50" style="flex:1;">
             </div>
-            <div class="control-group">
-                <div class="ui-label" id="label-sfx" style="width:100px; color:var(--primary-red); font-size:1.2rem; font-family:'Share Tech Mono';">SOUND FX</div>
-                <input type="range" id="sfx-vol-slider" min="0" max="100" value="50">
-            </div>
-            <button id="btn-close-settings" class="btn-svg"></button>
+            <div style="display:flex; align-items:center; gap:20px;">
+                <div class="ui-label" id="label-music" style="width:100px; color:var(--primary-red); font-size:1.2rem; font-family:'VientlyFlustern';">MUSIC</div>
+                <input type="range" id="music-vol-slider" min="0" max="100" value="50" style="flex:1;">
+            </div>            <button id="btn-close-settings" class="btn-svg"></button>
         </div>
     </div>
 
@@ -333,6 +370,16 @@
         <img src="SVG/hud_RIGHT.svg" class="hud-frame hud-right">
         <img src="SVG/hud_TOP.svg" class="hud-frame hud-top">
         <img src="SVG/hud_PILOTEJECT.svg" id="hud-eject" class="hud-eject">
+
+        <!-- Shield Grids -->
+        <div id="hud-left-grid" class="hud-grid hud-grid-left"></div>
+        <div id="hud-right-grid" class="hud-grid hud-grid-right"></div>
+
+        <!-- System Controls -->
+        <div id="hud-side-controls">
+            <div id="btn-pause" class="side-btn" title="PAUSE (ESC)"></div>
+            <div id="btn-side-settings" class="side-btn" title="SETTINGS"></div>
+        </div>
 
         <div id="damage-overlay" class="damage-flash"></div>
         <div id="persistent-damage" style="position: absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:6; display:none;"></div>
@@ -407,6 +454,18 @@
         let sfxVolume = 0.5;
         let musicVolume = 0.5;
         const bgMusic = document.getElementById('bg-music');
+
+        function flashGrid() {
+            const left = document.getElementById('hud-left-grid');
+            const right = document.getElementById('hud-right-grid');
+            [left, right].forEach(g => {
+                if (g) {
+                    g.classList.remove('grid-flash');
+                    void g.offsetWidth; // trigger reflow
+                    g.classList.add('grid-flash');
+                }
+            });
+        }
 
         function playSound(type) {
             if (sfxVolume <= 0 || audioCtx.state === 'suspended') return;
@@ -572,12 +631,15 @@
                 { id: 'ui_label_wave', url: 'SVG/ui_Level_Up_W.svg' },
                 { id: 'ui_label_shield', url: 'SVG/ui_Shields.svg' },
                 { id: 'ui_label_music', url: 'SVG/ui_Music_W.svg' },
+                { id: 'ui_gear',        url: 'SVG/ui_Settings_W.svg' },
                 { id: 'ui_damage_01', url: 'SVG/ui_Damage_01.svg' },
                 { id: 'ui_damage_02', url: 'SVG/ui_Damage_02.svg' },
                 { id: 'ui_damage_03', url: 'SVG/ui_Damage_03.svg' },
                 { id: 'ui_explosion',  url: 'SVG/ui_EXPLOSION.svg' },
                 { id: 'ui_promoted',   url: 'SVG/ui_PROMOTED.svg' },
                 { id: 'ui_terminated', url: 'SVG/ui_TERMINATED.svg' },
+                { id: 'hud_left_grid',  url: 'SVG/hud_LEFTGRID.svg' },
+                { id: 'hud_right_grid', url: 'SVG/hud_RIGHTGRID.svg' },
                 { id: 'badge_scout',       url: 'SVG/ui_Terran_Scout_Badge.svg' },
                 { id: 'badge_fighter',     url: 'SVG/ui_Terran_Fighter_Badge.svg' },
                 { id: 'badge_dreadnaught', url: 'SVG/ui_Terran_Dreadnaught_Badge.svg' },
@@ -778,7 +840,24 @@
                     
                     if (eng) this.mainGroup.appendChild(eng); // re-attach on top
                     if (dmg) this.mainGroup.appendChild(dmg); // re-attach damage overlay on very top
-                }
+                    // Add symbols to side buttons
+            const pauseBtn = document.getElementById('btn-pause');
+            const sideSettingsBtn = document.getElementById('btn-side-settings');
+            
+            if (pauseBtn) {
+                // Pause icon (two vertical bars)
+                pauseBtn.innerHTML = gameState.paused ? 
+                    `<svg viewBox="0 0 100 100"><polygon points="30,20 80,50 30,80" /></svg>` : 
+                    `<svg viewBox="0 0 100 100"><rect x="25" y="20" width="15" height="60"/><rect x="60" y="20" width="15" height="60"/></svg>`;
+            }
+            if (sideSettingsBtn) {
+                sideSettingsBtn.innerHTML = Sprites.ui_gear || '⚙️';
+            }
+
+            // Populate Grid SVGs
+            document.getElementById('hud-left-grid').innerHTML = Sprites.hud_left_grid || '';
+            document.getElementById('hud-right-grid').innerHTML = Sprites.hud_right_grid || '';
+        }
                 if (s.shield) this.shieldGroup.innerHTML = resize(s.shield);
                 if (s.damage !== undefined) {
                     this.damageOverlayGroup.innerHTML = s.damage ? resize(s.damage) : '';
@@ -953,6 +1032,7 @@
                     if (this.shields < 0) this.shields = 0;
                     document.getElementById('shield-meter').style.width = this.shields + '%';
                     triggerDamageFlash(); 
+                    flashGrid(); // New shield grid effect
                     return;
                 }
                 
@@ -1877,12 +1957,31 @@
             }
         }
 
+        function togglePause() {
+            if (!gameState.running && !gameState.paused) return; // ignore before start
+            
+            gameState.paused = !gameState.paused;
+            
+            // Update Pause UI
+            const pauseBtn = document.getElementById('btn-pause');
+            if (pauseBtn) {
+                pauseBtn.innerHTML = gameState.paused ? 
+                    `<svg viewBox="0 0 100 100"><polygon points="30,20 80,50 30,80" /></svg>` : 
+                    `<svg viewBox="0 0 100 100"><rect x="25" y="20" width="15" height="60"/><rect x="60" y="20" width="15" height="60"/></svg>`;
+            }
+
+            if (!gameState.paused) {
+                gameState.lastTime = performance.now();
+                requestAnimationFrame(gameLoop);
+            }
+        }
+
         const TARGET_FPS = 30;
         const FRAME_MS  = 1000 / TARGET_FPS;
         let   lastFrameTime = 0;
 
         function gameLoop(timestamp) {
-            if (!gameState.running) return;
+            if (!gameState.running || gameState.paused) return;
             // 30 fps cap — skip frame if not enough time has passed
             if (timestamp - lastFrameTime < FRAME_MS) {
                 requestAnimationFrame(gameLoop);
@@ -1981,6 +2080,18 @@
             if (audioCtx.state === 'suspended') audioCtx.resume();
             if (bgMusic) {
                 bgMusic.volume = musicVolume;
+                
+                // Soundtrack Playlist Support
+                const tracks = ['Demon_Attack_OST1.mp3', 'Demon_Attack_OST2.mp3'];
+                let currentTrack = 0;
+                
+                bgMusic.src = tracks[currentTrack];
+                bgMusic.onended = () => {
+                    currentTrack = (currentTrack + 1) % tracks.length;
+                    bgMusic.src = tracks[currentTrack];
+                    bgMusic.play();
+                };
+
                 bgMusic.play().catch(e => console.error("Music playback failed:", e));
             }
             if (!Sprites.terran_scout) {
@@ -2054,6 +2165,9 @@
             if (gameState.running && ['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code)) {
                 e.preventDefault();
             }
+            if (e.code === 'Escape') {
+                togglePause();
+            }
         });
 
         window.addEventListener('keyup', (e) => {
@@ -2077,9 +2191,19 @@
         document.getElementById('btn-settings').addEventListener('click', () => {
             switchScreen('settings');
         });
+
+        document.getElementById('btn-pause').addEventListener('click', togglePause);
+        document.getElementById('btn-side-settings').addEventListener('click', () => {
+             // In-game settings share the same UI
+             switchScreen('settings');
+        });
         
         document.getElementById('btn-close-settings').addEventListener('click', () => {
-            switchScreen('landing');
+            if (gameState.running) {
+                switchScreen('game');
+            } else {
+                switchScreen('landing');
+            }
         });
 
         // Fullscreen Toggle
