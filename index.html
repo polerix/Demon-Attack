@@ -664,8 +664,15 @@
                     return str;
                 };
                 if (s.shadow) this.shadowGroup.innerHTML = resize(s.shadow);
-                if (s.base) this.mainGroup.innerHTML = resize(s.base);
+                if (s.base) {
+                    // Detach engineGroup first — innerHTML wipes child DOM nodes
+                    const eng = this.engineGroup;
+                    if (eng.parentNode === this.mainGroup) this.mainGroup.removeChild(eng);
+                    this.mainGroup.innerHTML = resize(s.base);
+                    this.mainGroup.appendChild(eng); // re-attach on top
+                }
                 if (s.shield) this.shieldGroup.innerHTML = resize(s.shield);
+
             }
 
             updateTransform() {
