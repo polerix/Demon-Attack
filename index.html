@@ -249,6 +249,27 @@
             font-size: 0.8rem;
             padding: 5px 10px;
         }
+
+        /* Static HUD Overlays */
+        .hud-frame { position: absolute; pointer-events: none; z-index: 45; }
+        .hud-left  { left: 0; top: 0; height: 100%; }
+        .hud-right { right: 0; top: 0; height: 100%; }
+        .hud-top   { top: 0; left: 50%; transform: translateX(-50%); width: 40vw; max-width: 400px; }
+        
+        /* Pilot Eject Warning Overlay */
+        .hud-eject {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            z-index: 100; pointer-events: none; display: none;
+            width: 70vw; max-width: 600px;
+        }
+        .hud-eject.active {
+            display: block;
+            animation: ejectFlash 0.15s ease-out infinite alternate;
+        }
+        @keyframes ejectFlash {
+            from { filter: drop-shadow(0 0 10px var(--primary-red)) brightness(1); }
+            to   { filter: drop-shadow(0 0 40px var(--primary-red)) brightness(1.5); }
+        }
     </style>
 </head>
 <body>
@@ -291,6 +312,12 @@
     </div>
 
     <div id="screen-game" class="screen hidden">
+        <!-- New Frame HUD Elements -->
+        <img src="SVG/hud_LEFT.svg" class="hud-frame hud-left">
+        <img src="SVG/hud_RIGHT.svg" class="hud-frame hud-right">
+        <img src="SVG/hud_TOP.svg" class="hud-frame hud-top">
+        <img src="SVG/hud_PILOTEJECT.svg" id="hud-eject" class="hud-eject">
+
         <div id="damage-overlay" class="damage-flash"></div>
         <div id="persistent-damage" style="position: absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:6; display:none;"></div>
         <div id="wave-announcement" class="wave-announcement">WAVE 1</div>
@@ -681,8 +708,12 @@
                 this.element.appendChild(this.shadowGroup);
                 this.element.appendChild(this.mainGroup);
                 this.element.appendChild(this.shieldGroup);
-                // engineGroup lives INSIDE mainGroup so it rotates with the ship body
+                
+                // engineGroup and damageOverlayGroup live INSIDE mainGroup so they rotate with the ship body
                 this.mainGroup.appendChild(this.engineGroup);
+                this.damageOverlayGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
+                this.mainGroup.appendChild(this.damageOverlayGroup);
+                
                 this.shieldGroup.style.display = 'none';
 
                 if (sprites) this.updateSprites(sprites);
@@ -706,13 +737,21 @@
                 };
                 if (s.shadow) this.shadowGroup.innerHTML = resize(s.shadow);
                 if (s.base) {
-                    // Detach engineGroup first — innerHTML wipes child DOM nodes
+                    // Detach sub-groups first — innerHTML wipes child DOM nodes
                     const eng = this.engineGroup;
-                    if (eng.parentNode === this.mainGroup) this.mainGroup.removeChild(eng);
+                    const dmg = this.damageOverlayGroup;
+                    if (eng && eng.parentNode === this.mainGroup) this.mainGroup.removeChild(eng);
+                    if (dmg && dmg.parentNode === this.mainGroup) this.mainGroup.removeChild(dmg);
+                    
                     this.mainGroup.innerHTML = resize(s.base);
-                    this.mainGroup.appendChild(eng); // re-attach on top
+                    
+                    if (eng) this.mainGroup.appendChild(eng); // re-attach on top
+                    if (dmg) this.mainGroup.appendChild(dmg); // re-attach damage overlay on very top
                 }
                 if (s.shield) this.shieldGroup.innerHTML = resize(s.shield);
+                if (s.damage !== undefined) {
+                    this.damageOverlayGroup.innerHTML = s.damage ? resize(s.damage) : '';
+                }
 
             }
 
@@ -853,16 +892,16 @@
 
                 // Layer 1: topo map image via pattern
                 this.bgRect = document.createElementNS(NS, 'rect');
-                this.bgRect.setAttribute('x','0'); this.bgRect.setAttribute('y','0');
-                this.bgRect.setAttribute('width','800'); this.bgRect.setAttribute('height','600');
+                this.bgRect.setAttribute('x','-1000'); this.bgRect.setAttribute('y','-1000');
+                this.bgRect.setAttribute('width','3000'); this.bgRect.setAttribute('height','3000');
                 this.bgRect.setAttribute('fill','url(#topoBGPat)');
                 this.bgRect.setAttribute('opacity','0.60');
                 this.group.appendChild(this.bgRect);
 
                 // Layer 2: amber tint gradient over the map
                 this.tintRect = document.createElementNS(NS, 'rect');
-                this.tintRect.setAttribute('x','0'); this.tintRect.setAttribute('y','0');
-                this.tintRect.setAttribute('width','800'); this.tintRect.setAttribute('height','600');
+                this.tintRect.setAttribute('x','-1000'); this.tintRect.setAttribute('y','-1000');
+                this.tintRect.setAttribute('width','3000'); this.tintRect.setAttribute('height','3000');
                 this.tintRect.setAttribute('fill','url(#amberTintGrad)');
                 this.group.appendChild(this.tintRect);
             }
@@ -904,8 +943,31 @@
                 this.missiles = 5;
                 this.missileType = 'mini';
                 this.shields = 100;
+                this.damageStage = 0;
+                this.isInvulnerable = false;
                 this.updateLevelSprites();
                 this.setupEngine();
+            }
+
+            takeDamage() {
+                if (this.isInvulnerable) return;
+
+                if (this.shields > 0) {
+                    this.shields -= 50; 
+                    if (this.shields < 0) this.shields = 0;
+                    document.getElementById('shield-meter').style.width = this.shields + '%';
+                    triggerDamageFlash(); 
+                    return;
+                }
+                
+                this.damageStage++;
+                if (this.damageStage >= 4) {
+                    pilotEject();
+                } else {
+                    this.updateSprites({ damage: Sprites[`ui_damage_0${this.damageStage}`] });
+                    triggerDamageFlash();
+                    createExplosion(this.x, this.y);
+                }
             }
 
             getEngineColor() {
@@ -1450,48 +1512,48 @@
             }
         }
 
-        function triggerDamageFlash(livesLeft) {
+        function triggerDamageFlash() {
             const overlay = document.getElementById('damage-overlay');
-            let imgIndex = 3 - livesLeft;
-            if (imgIndex < 1) imgIndex = 1;
-            if (imgIndex > 3) imgIndex = 3;
-            // Use inline SVG sprite for flash color
-            overlay.style.background = imgIndex === 1 ? 'rgba(255,100,0,0.4)' : imgIndex === 2 ? 'rgba(255,50,0,0.5)' : 'rgba(255,0,0,0.6)';
+            overlay.style.background = 'rgba(255,0,0,0.6)';
             overlay.classList.remove('animate');
             void overlay.offsetWidth;
             overlay.classList.add('animate');
         }
 
-        function updatePersistentDamage() {
-            const container = document.getElementById('persistent-damage');
-            if (!container || !entities.player) return;
-            const shields = entities.player.shields;
+        function pilotEject() {
+            const ejectHUD = document.getElementById('hud-eject');
+            const p = entities.player;
 
-            // Compound layers: each layer is always-visible once threshold crossed
-            const layers = [];
-            if (shields < 100) layers.push(Sprites.ui_damage_01);
-            if (shields <= 66) layers.push(Sprites.ui_damage_02);
-            if (shields <= 33) layers.push(Sprites.ui_damage_03);
+            // Trigger eject HUD sequence
+            ejectHUD.classList.add('active');
+            playSound('explosion'); 
+            
+            // Temporary invulnerability
+            p.isInvulnerable = true;
+            p.element.style.opacity = '0.5';
 
-            if (layers.length === 0) {
-                container.style.display = 'none';
-                container.innerHTML = '';
-                return;
+            gameState.teleports--;
+            
+            if (gameState.teleports < 0) {
+                setTimeout(() => gameOver(), 1000);
+            } else {
+                setTimeout(() => {
+                    ejectHUD.classList.remove('active');
+                    // Reset to clean ship
+                    p.damageStage = 0;
+                    p.shields = 100;
+                    document.getElementById('shield-meter').style.width = '100%';
+                    p.updateSprites({ damage: null }); 
+                }, 1500);
+
+                // Recover invulnerability after blink
+                setTimeout(() => {
+                    p.isInvulnerable = false;
+                    p.element.style.opacity = '1';
+                }, 3000);
             }
-            container.style.display = 'block';
-            container.innerHTML = layers.map(svg => {
-                if (!svg) return '';
-                const t = document.createElement('div');
-                t.innerHTML = svg;
-                const s = t.querySelector('svg');
-                if (s) {
-                    s.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;';
-                    s.setAttribute('preserveAspectRatio', 'xMidYMid slice');
-                    return s.outerHTML;
-                }
-                return svg;
-            }).join('');
         }
+
 
         function checkCollisions() {
             // Projectiles vs Enemies/Pods
@@ -1544,21 +1606,13 @@
                             b.y < ship.y + ship.height && b.y + b.height > ship.y) {
                             b.disable();
                             if (ship === entities.player) {
-                                if (ship.shields > 0) {
-                                    ship.shields -= 20;
-                                    ship.showShield(true);
-                                    setTimeout(() => ship.showShield(false), 500);
-                                    updatePersistentDamage();
-                                } else {
-                                    gameState.lives--;
-                                    triggerDamageFlash(gameState.lives);
-                                    createExplosion(ship.x, ship.y);
-                                    if (gameState.lives <= 0) gameOver();
-                                    else {
-                                        ship.shields = 100; // Reset shields on life loss
-                                        updatePersistentDamage();
-                                    }
-                                }
+                                ship.takeDamage();
+                            } else {
+                                // Escort AI takes damage
+                                ship.shields -= 20;
+                                ship.showShield(true);
+                                setTimeout(() => ship.showShield(false), 500);
+                                if (ship.shields <= 0) ship.markedForDeletion = true;
                             }
                         }
                     });
@@ -1605,14 +1659,7 @@
                     p.x < d.x + d.width && p.x + p.width > d.x &&
                     p.y < d.y + d.height && p.y + p.height > d.y) {
                     if (!d.isBoss) d.markedForDeletion = true; // Boss crushes player, lives on.
-                    gameState.lives--;
-                    triggerDamageFlash(gameState.lives);
-                    createExplosion(p.x, p.y);
-                    if (gameState.lives <= 0) gameOver();
-                    else {
-                        p.shields = 100;
-                        updatePersistentDamage();
-                    }
+                    p.takeDamage();
                 }
             });
         }
