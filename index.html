@@ -783,74 +783,112 @@
         // ─────────────────────────────────────────────────────────────────
         class DesertBG {
             constructor() {
-                // 'screen-game' is the actual container for the game canvas
-                this.container = document.getElementById('screen-game');
-                this.bgEl   = null;
-                this.tintEl = null;
-                this.posY   = 0;   // pixels scrolled (wraps at image height)
-                this.posX   = 0;   // parallax X
-                this.speed  = 60;  // px/sec scroll speed
-                this.imgH   = 768; // approximate natural height of the image
+                const NS = 'http://www.w3.org/2000/svg';
+                this.group = document.getElementById('bg-group');
 
-                // Remove any stale background wrap from a previous game session
+                // Remove old HTML div wrap if it lingered from the previous approach
                 const stale = document.getElementById('topo-bg-wrap');
                 if (stale && stale.parentNode) stale.parentNode.removeChild(stale);
 
-                // Build two absolutely-positioned divs BEHIND the SVG
-                const wrap = document.createElement('div');
-                wrap.id = 'topo-bg-wrap';
-                wrap.style.cssText = [
-                    'position:absolute', 'inset:0',
-                    'overflow:hidden', 'pointer-events:none',
-                    'z-index:0'
-                ].join(';');
+                // ── Scroll state ──────────────────────────────────────────
+                this.posY  = 0;    // accumulated Y scroll in SVG units
+                this.posX  = 0;    // accumulated X scroll (bank parallax)
+                this.BASE_SPEED = 55;  // px/sec at normal cruise altitude
 
-                // Layer 1: the topo image
-                this.bgEl = document.createElement('div');
-                this.bgEl.style.cssText = [
-                    'position:absolute', 'inset:0',
-                    `background-image:url('topographic-map_feature_2.jpg')`,
-                    'background-size:cover',
-                    'background-repeat:repeat-y',
-                    'background-position:50% 0px',
-                    'opacity:0.55'
-                ].join(';');
-
-                // Layer 2: amber tint overlay (mix-blend: multiply keeps contour detail)
-                this.tintEl = document.createElement('div');
-                this.tintEl.style.cssText = [
-                    'position:absolute', 'inset:0',
-                    'background:linear-gradient(180deg, #1A0D00 0%, #3B1A00 40%, #0D0900 100%)',
-                    'mix-blend-mode:multiply',
-                    'opacity:0.85'
-                ].join(';');
-
-                wrap.appendChild(this.bgEl);
-                wrap.appendChild(this.tintEl);
-
-                // Insert before the game SVG so it sits behind everything
-                const svg = document.getElementById('game-svg');
-                if (svg && this.container) {
-                    this.container.insertBefore(wrap, svg);
-                } else if (this.container) {
-                    this.container.appendChild(wrap);
+                // ── SVG defs: pattern + gradient tint ────────────────────
+                const gameSvg = document.getElementById('game-svg');
+                let defs = gameSvg.querySelector('defs');
+                // Ensure defs exists (it does in our markup, but guard anyway)
+                if (!defs) {
+                    defs = document.createElementNS(NS, 'defs');
+                    gameSvg.insertBefore(defs, gameSvg.firstChild);
                 }
 
-                // Clear the SVG bg-group (nothing to draw there now)
-                const bgGroup = document.getElementById('bg-group');
-                if (bgGroup) bgGroup.innerHTML = '';
+                // Clean up any previous pattern/gradient from a prior game session
+                ['topoBGPat', 'amberTintGrad'].forEach(id => {
+                    const el = defs.querySelector(`#${id}`);
+                    if (el) defs.removeChild(el);
+                });
+
+                // Scrolling topo-map pattern
+                // patternUnits=userSpaceOnUse → pattern coords match SVG viewport (800×600)
+                // The image is sized to 800×600 (cover), pattern repeats seamlessly
+                this.pattern = document.createElementNS(NS, 'pattern');
+                this.pattern.setAttribute('id', 'topoBGPat');
+                this.pattern.setAttribute('patternUnits', 'userSpaceOnUse');
+                this.pattern.setAttribute('width',  '800');
+                this.pattern.setAttribute('height', '600');
+                // patternTransform shifts the pattern each frame to simulate scroll
+                this.pattern.setAttribute('patternTransform', 'translate(0,0)');
+
+                const img = document.createElementNS(NS, 'image');
+                img.setAttribute('href', 'topographic-map_feature_2.jpg');
+                img.setAttribute('x', '0'); img.setAttribute('y', '0');
+                img.setAttribute('width', '800'); img.setAttribute('height', '600');
+                img.setAttribute('preserveAspectRatio', 'xMidYMid slice');
+                this.pattern.appendChild(img);
+                defs.appendChild(this.pattern);
+
+                // Amber/dark gradient tint (sits over image, under entities)
+                const grad = document.createElementNS(NS, 'linearGradient');
+                grad.setAttribute('id', 'amberTintGrad');
+                grad.setAttribute('x1','0'); grad.setAttribute('y1','0');
+                grad.setAttribute('x2','0'); grad.setAttribute('y2','1');
+                const stops = [
+                    ['0%',   '#1A0D00', '0.82'],
+                    ['40%',  '#2E1600', '0.75'],
+                    ['100%', '#0D0900', '0.88']
+                ];
+                stops.forEach(([offset, color, opacity]) => {
+                    const stop = document.createElementNS(NS, 'stop');
+                    stop.setAttribute('offset', offset);
+                    stop.setAttribute('stop-color', color);
+                    stop.setAttribute('stop-opacity', opacity);
+                    grad.appendChild(stop);
+                });
+                defs.appendChild(grad);
+
+                // ── Populate bg-group (guaranteed layer 0 — drawn before all entities) ──
+                this.group.innerHTML = '';
+
+                // Layer 1: topo map image via pattern
+                this.bgRect = document.createElementNS(NS, 'rect');
+                this.bgRect.setAttribute('x','0'); this.bgRect.setAttribute('y','0');
+                this.bgRect.setAttribute('width','800'); this.bgRect.setAttribute('height','600');
+                this.bgRect.setAttribute('fill','url(#topoBGPat)');
+                this.bgRect.setAttribute('opacity','0.60');
+                this.group.appendChild(this.bgRect);
+
+                // Layer 2: amber tint gradient over the map
+                this.tintRect = document.createElementNS(NS, 'rect');
+                this.tintRect.setAttribute('x','0'); this.tintRect.setAttribute('y','0');
+                this.tintRect.setAttribute('width','800'); this.tintRect.setAttribute('height','600');
+                this.tintRect.setAttribute('fill','url(#amberTintGrad)');
+                this.group.appendChild(this.tintRect);
             }
 
-            update(dt, bankAngle = 0) {
-                this.posY += this.speed * dt;
-                if (this.posY >= this.imgH) this.posY -= this.imgH;
-                // Gentle horizontal parallax with bank angle
-                this.posX -= bankAngle * 0.4 * dt;
+            // bankAngle: player bank angle (±degrees) for horizontal parallax
+            // playerZ:   player z-altitude — positive = boost (faster scroll), negative = brake
+            update(dt, bankAngle = 0, playerZ = 0) {
+                // Forward scroll: base speed modulated by altitude (boost scrolls faster)
+                const forwardSpeed = this.BASE_SPEED + playerZ * 0.8;
+                this.posY += forwardSpeed * dt;
 
-                this.bgEl.style.backgroundPosition =
-                    `${50 + this.posX * 0.1}% ${-this.posY.toFixed(1)}px`;
+                // Horizontal parallax: bank right → map drifts left, and vice versa
+                this.posX -= bankAngle * 0.9 * dt;
+
+                // Wrap within 600px (pattern height) to keep numbers bounded
+                this.posY = this.posY % 600;
+                this.posX = this.posX % 800;
+
+                // A single setAttribute drives the entire scroll — near-zero CPU cost
+                this.pattern.setAttribute('patternTransform',
+                    `translate(${this.posX.toFixed(1)}, ${this.posY.toFixed(1)})`);
             }
         }
+
+
+
 
 
 
@@ -1633,7 +1671,7 @@
             if (dt > 0.1) dt = 0.1;
             gameState.lastTime = timestamp;
 
-            entities.bg.update(dt, entities.player.bankAngle);
+            entities.bg.update(dt, entities.player.bankAngle, entities.player.z || 0);
             entities.player.update(dt);
             entities.escorts.forEach(e => e.update(dt, entities.player.x, entities.player.y));
             Array.from(bulletPool.active).forEach(b => b.update(dt));
