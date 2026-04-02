@@ -313,7 +313,11 @@
             <h2 style="color:var(--primary-red); font-family:'GyozaDEMO';">SYSTEM CONFIG</h2>
             <div class="control-group">
                 <div class="ui-label" id="label-music" style="width:100px;"></div>
-                <input type="range" id="vol-slider" min="0" max="100" value="50">
+                <input type="range" id="music-vol-slider" min="0" max="100" value="50">
+            </div>
+            <div class="control-group">
+                <div class="ui-label" id="label-sfx" style="width:100px; color:var(--primary-red); font-size:1.2rem; font-family:'Share Tech Mono';">SOUND FX</div>
+                <input type="range" id="sfx-vol-slider" min="0" max="100" value="50">
             </div>
             <button id="btn-close-settings" class="btn-svg"></button>
         </div>
@@ -387,11 +391,12 @@
          * AUDIO SYSTEM (Web Audio API)
          */
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        let masterVolume = 0.5;
+        let sfxVolume = 0.5;
+        let musicVolume = 0.5;
         const bgMusic = document.getElementById('bg-music');
 
         function playSound(type) {
-            if (masterVolume <= 0 || audioCtx.state === 'suspended') return;
+            if (sfxVolume <= 0 || audioCtx.state === 'suspended') return;
             
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
@@ -404,7 +409,7 @@
                 osc.type = 'square';
                 osc.frequency.setValueAtTime(880, now);
                 osc.frequency.exponentialRampToValueAtTime(110, now + 0.1);
-                gain.gain.setValueAtTime(masterVolume, now);
+                gain.gain.setValueAtTime(sfxVolume, now);
                 gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
                 osc.start(now);
                 osc.stop(now + 0.1);
@@ -412,14 +417,14 @@
                 osc.type = 'sawtooth';
                 osc.frequency.setValueAtTime(100, now);
                 osc.frequency.linearRampToValueAtTime(10, now + 0.3);
-                gain.gain.setValueAtTime(masterVolume, now);
+                gain.gain.setValueAtTime(sfxVolume, now);
                 gain.gain.linearRampToValueAtTime(0.01, now + 0.3);
                 osc.start(now);
                 osc.stop(now + 0.3);
             } else if (type === 'demon_move') {
                 osc.type = 'triangle';
                 osc.frequency.setValueAtTime(150 + Math.random() * 50, now);
-                gain.gain.setValueAtTime(masterVolume * 0.2, now);
+                gain.gain.setValueAtTime(sfxVolume * 0.2, now);
                 gain.gain.linearRampToValueAtTime(0.01, now + 0.1);
                 osc.start(now);
                 osc.stop(now + 0.1);
@@ -1857,7 +1862,7 @@
         function initGame() {
             if (audioCtx.state === 'suspended') audioCtx.resume();
             if (bgMusic) {
-                bgMusic.volume = masterVolume;
+                bgMusic.volume = musicVolume;
                 bgMusic.play().catch(e => console.error("Music playback failed:", e));
             }
             if (!Sprites.terran_scout) {
@@ -1970,11 +1975,17 @@
         }
 
         // Settings Logic
-        const volSlider = document.getElementById('vol-slider');
-        if (volSlider) {
-            volSlider.addEventListener('input', (e) => {
-                masterVolume = e.target.value / 100;
-                if (bgMusic) bgMusic.volume = masterVolume;
+        const sfxSlider = document.getElementById('sfx-vol-slider');
+        if (sfxSlider) {
+            sfxSlider.addEventListener('input', (e) => {
+                sfxVolume = e.target.value / 100;
+            });
+        }
+        const musicSlider = document.getElementById('music-vol-slider');
+        if (musicSlider) {
+            musicSlider.addEventListener('input', (e) => {
+                musicVolume = e.target.value / 100;
+                if (bgMusic) bgMusic.volume = musicVolume;
             });
         }
 
