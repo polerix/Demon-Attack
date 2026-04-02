@@ -164,7 +164,7 @@
         }
         .m-btn:active { background: var(--primary-red); color: #000; }
 
-        #game-svg { width: 100%; height: 100%; background: #000; }
+        #game-svg { width: 100%; height: 100%; background: transparent; }
 
         .damage-flash {
             position: absolute; top:0; left:0; width:100%; height:100%;
@@ -1086,6 +1086,22 @@
                     base: Sprites['terran_scout'],
                     shadow: Sprites['terran_scout_shadow']
                 });
+                this.setupEngine();
+            }
+
+            setupEngine() {
+                this.engineGroup.innerHTML = `
+                    <circle cx="${this.width/2}" cy="54" r="8" fill="url(#fireGradient_e)" opacity="0.8">
+                        <animate attributeName="r" values="6;10;6" dur="0.1s" repeatCount="indefinite" />
+                    </circle>
+                    <defs>
+                        <radialGradient id="fireGradient_e">
+                            <stop offset="0%" stop-color="#FFCC00" />
+                            <stop offset="60%" stop-color="#FF6600" stop-opacity="0.4" />
+                            <stop offset="100%" stop-color="transparent" />
+                        </radialGradient>
+                    </defs>
+                `;
             }
 
             update(dt, playerX, playerY) {
@@ -1103,6 +1119,13 @@
                 this.angle += (targetBank - this.angle) * 8 * dt;
 
                 this.updateTransform();
+
+                // Engine flame shifts based on bank
+                const engineCircle = this.engineGroup.querySelector('circle');
+                if (engineCircle) {
+                    const flameCx = this.width / 2 - this.angle * 0.4;
+                    engineCircle.setAttribute('cx', flameCx);
+                }
 
                 if (this.cooldown > 0) this.cooldown -= dt;
                 if (this.cooldown <= 0) {
