@@ -20,7 +20,7 @@
       }
 
       .cls-4 {
-        fill: #939596;
+        fill: red;
       }
     </style>
   </defs>

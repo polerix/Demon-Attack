@@ -303,7 +303,54 @@
         .hud-right { right: 0; top: 0; width: 294px; height: auto; }
         .hud-top   { top: 0; left: 50%; transform: translateX(-50%); width: 436px; height: auto; }
         
-        /* Pilot Eject Warning Overlay */
+        /* HUD SVG icon buttons (PLAYPAUSE, SETTINGS) */
+        .hud-icon-btn {
+            position: absolute;
+            cursor: pointer;
+            pointer-events: all;
+            z-index: 250;
+            opacity: 0.85;
+            transition: opacity 0.2s, filter 0.2s;
+        }
+        .hud-icon-btn:hover { opacity: 1; filter: drop-shadow(0 0 8px var(--primary-red)); }
+        .hud-icon-btn img { width: 100%; height: 100%; display: block; }
+        #hud-btn-playpause { left: 15px; top: 45%; width: 64px; height: 64px; transform: translateY(-100%); }
+        #hud-btn-settings  { left: 15px; top: 45%; width: 64px; height: 64px; transform: translateY(10%); }
+
+        /* Teleport indicator bar */
+        #hud-teleport-bar {
+            position: absolute;
+            bottom: 12px; left: 50%;
+            transform: translateX(-50%);
+            z-index: 210;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            pointer-events: none;
+        }
+        #hud-teleport-icon { width: 48px; height: 48px; }
+        #hud-teleport-icon img { width: 100%; }
+        #teleport-lives { display: flex; gap: 4px; align-items: center; }
+
+        /* HUD TOP rank badge overlay */
+        #hud-top-overlay {
+            position: absolute;
+            top: 0; left: 50%;
+            transform: translateX(-50%);
+            width: 436px;
+            height: auto;
+            z-index: 205;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            pointer-events: none;
+            padding-top: 10px;
+        }
+        #hud-level-label { width: 120px; height: auto; }
+        #hud-rank-badges { display: flex; gap: 4px; flex-wrap: wrap; justify-content: center; margin-top: 4px; }
+
+        /* Pilot Eject — now clickable during eject pending */
         .hud-eject {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
             z-index: 100; pointer-events: none; display: none;
@@ -313,13 +360,24 @@
             display: block;
             animation: ejectFlash 0.15s ease-out infinite alternate;
         }
+        .hud-eject.clickable {
+            pointer-events: all;
+            cursor: pointer;
+        }
+        .hud-eject.eject-countdown {
+            display: block;
+            animation: ejectCountdown 0.3s ease-out infinite alternate;
+        }
         @keyframes ejectFlash {
             from { filter: drop-shadow(0 0 10px var(--primary-red)) brightness(1); }
             to   { filter: drop-shadow(0 0 40px var(--primary-red)) brightness(1.5); }
         }
+        @keyframes ejectCountdown {
+            from { filter: drop-shadow(0 0 20px #FF6600) brightness(1.2); opacity: 0.7; }
+            to   { filter: drop-shadow(0 0 60px #FF0000) brightness(2); opacity: 1; }
+        }
     </style>
-    <audio id="bg-music" src="Demon_Attack_OST1.mp3" loop preload="auto"></audio>
-<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <audio id="bg-music" src="Demon_Attack_OST1.mp3" preload="auto"></audio>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
@@ -347,7 +405,6 @@
         <div id="main-logo"></div>
         <div id="landing-ships" style="position: absolute; top:0; left:0; width:100%; height:100%; z-index:1; pointer-events:none; overflow:hidden;"></div>
         <button id="btn-start" class="btn-svg" style="z-index:2; position:relative; margin-top: 15vh;"></button>
-        <button id="btn-settings" class="btn-svg" style="z-index:2; position:relative;"></button>
     </div>
 
     <div id="screen-settings" class="screen hidden">
@@ -375,10 +432,18 @@
         <div id="hud-left-grid" class="hud-grid hud-grid-left"></div>
         <div id="hud-right-grid" class="hud-grid hud-grid-right"></div>
 
-        <!-- System Controls -->
-        <div id="hud-side-controls">
-            <div id="btn-pause" class="side-btn" title="PAUSE (ESC)"></div>
-            <div id="btn-side-settings" class="side-btn" title="SETTINGS"></div>
+        <!-- HUD SVG Action Buttons -->
+        <div id="hud-btn-playpause" class="hud-icon-btn" title="PLAY / PAUSE (ESC)">
+            <img src="SVG/hud_PLAYPAUSE.svg" alt="Play/Pause">
+        </div>
+        <div id="hud-btn-settings" class="hud-icon-btn" title="SYSTEM CONFIG">
+            <img src="SVG/hud_SETTINGS.svg" alt="Settings">
+        </div>
+
+        <!-- HUD TOP rank badge overlay centered in hud_TOP frame -->
+        <div id="hud-top-overlay">
+            <div id="hud-level-label"><img src="SVG/ui_Level_Up_W.svg" alt="LEVEL"></div>
+            <div id="hud-rank-badges"></div>
         </div>
 
         <div id="damage-overlay" class="damage-flash"></div>
@@ -389,20 +454,20 @@
         <div id="bonus-announcement" class="bonus-announcement">
             <img src="SVG/hud_BONUS.svg" style="width:100%; height:auto;">
         </div>
+        <!-- Teleport (Lives) Indicator Bar -->
+        <div id="hud-teleport-bar">
+            <div id="hud-teleport-icon"><img src="SVG/hud_TELEPORT.svg" alt="Teleports"></div>
+            <div id="teleport-lives"></div>
+        </div>
+
         <div id="game-ui">
             <div class="ui-block">
                 <div class="ui-label" id="ui-score-label"></div>
-                <div style="display:flex; align-items:center; gap:10px;">
-                    <div id="score-display" class="ui-value">0</div>
-                    <div id="teleport-lives" style="display:flex; gap:4px;"></div>
-                </div>
+                <div id="score-display" class="ui-value">0</div>
             </div>
             <div class="ui-block">
+                <!-- Rank badges live in #hud-top-overlay, this block kept for wave label only -->
                 <div class="ui-label" id="ui-wave-label"></div>
-                <div style="display:flex; align-items:center; gap:8px;">
-                    <div id="wave-display" class="ui-value">1</div>
-                    <div id="rank-badge"></div>
-                </div>
             </div>
             <div class="ui-block">
                 <div class="ui-label" id="ui-shield-label" style="color:var(--primary-red); font-family:'VientlyFlustern'; font-weight:bold;">POWER</div>
@@ -515,13 +580,15 @@
         const svgCanvas = document.getElementById('game-svg');
         const worldGroup = document.getElementById('world-group');
         const scoreUI = document.getElementById('score-display');
-        const waveUI = document.getElementById('wave-display');
 
         const GAME_WIDTH = 800;
         const GAME_HEIGHT = 600;
 
         let gameState = {
             running: false,
+            paused: false,
+            ejectPending: false,
+            ejectTimer: 0,
             score: 0,
             teleports: 3,
             wave: 1,
@@ -644,7 +711,10 @@
                 { id: 'badge_fighter',     url: 'SVG/ui_Terran_Fighter_Badge.svg' },
                 { id: 'badge_dreadnaught', url: 'SVG/ui_Terran_Dreadnaught_Badge.svg' },
                 { id: 'badge_missile',     url: 'SVG/ui_Terran_Missile_Badge.svg' },
-                { id: 'badge_power',       url: 'SVG/ui_Terran_Power_Badge.svg' }
+                { id: 'badge_power',       url: 'SVG/ui_Terran_Power_Badge.svg' },
+                { id: 'hud_playpause',  url: 'SVG/hud_PLAYPAUSE.svg' },
+                { id: 'hud_settings',   url: 'SVG/hud_SETTINGS.svg' },
+                { id: 'hud_teleport',   url: 'SVG/hud_TELEPORT.svg' }
             ];
 
             try {
@@ -1636,35 +1706,69 @@
         }
 
         function pilotEject() {
+            if (gameState.ejectPending) return; // Already in eject sequence
             const ejectHUD = document.getElementById('hud-eject');
             const p = entities.player;
 
-            // Trigger eject HUD sequence
-            ejectHUD.classList.add('active');
-            playSound('explosion'); 
-            
-            // Temporary invulnerability
+            // Phase 1: arm eject — visual warning + make it clickable
+            gameState.ejectPending = true;
             p.isInvulnerable = true;
             p.element.style.opacity = '0.5';
+            playSound('explosion');
 
-            gameState.teleports--;
-            
-            if (gameState.teleports < 0) {
-                setTimeout(() => gameOver(), 1000);
-            } else {
+            ejectHUD.classList.remove('active');
+            ejectHUD.classList.add('eject-countdown', 'clickable');
+
+            // Player has 3 seconds to click and guarantee a safe eject
+            let resolved = false;
+            const manualEject = () => {
+                if (resolved) return;
+                resolved = true;
+                ejectHUD.removeEventListener('click', manualEject);
+                clearTimeout(autoTimer);
+                resolveEject(true); // 100% success — manual
+            };
+            ejectHUD.addEventListener('click', manualEject);
+
+            const autoTimer = setTimeout(() => {
+                if (resolved) return;
+                resolved = true;
+                ejectHUD.removeEventListener('click', manualEject);
+                // Auto-eject: chance based on damage stage
+                const successChance = p.damageStage <= 1 ? 0.85 : p.damageStage === 2 ? 0.55 : 0.25;
+                resolveEject(Math.random() < successChance);
+            }, 3000);
+
+            function resolveEject(success) {
+                ejectHUD.classList.remove('eject-countdown', 'clickable');
+                gameState.ejectPending = false;
+
+                if (!success || gameState.teleports <= 0) {
+                    // TERMINATED
+                    ejectHUD.classList.add('active');
+                    setTimeout(() => {
+                        ejectHUD.classList.remove('active');
+                        gameOver();
+                    }, 1200);
+                    return;
+                }
+
+                // SUCCESSFUL TELEPORT — consumes one life, keeps the rest
+                gameState.teleports--;
+                ejectHUD.classList.add('active');
                 setTimeout(() => {
                     ejectHUD.classList.remove('active');
-                    // Reset to clean ship
                     p.damageStage = 0;
                     p.shields = 100;
-                    document.getElementById('shield-meter').style.width = '100%';
-                    p.updateSprites({ damage: null }); 
-                }, 1500);
+                    const sm = document.getElementById('shield-meter');
+                    if (sm) sm.style.width = '100%';
+                    p.updateSprites({ damage: null });
+                }, 1200);
 
-                // Recover invulnerability after blink
                 setTimeout(() => {
                     p.isInvulnerable = false;
                     p.element.style.opacity = '1';
+                    updateUI();
                 }, 3000);
             }
         }
@@ -1894,32 +1998,63 @@
                     break;
             }
 
-            waveUI.innerText = `${gameState.wave} (RANK ${p.level}.${p.subLevel})`;
+            updateRankBadges(entities.player.level, entities.player.subLevel);
+        }
+
+        // ── 25-STAGE RANK HELPERS ───────────────────────────────────────────────
+        // Scout: level=1, subLevel 1-3 → stages 1-10 (each subLevel ~3-4 waves)
+        // Fighter: level=2, subLevel 1-3 → stages 11-20
+        // Dreadnaught: level=3, subLevel 1-3 → stages 21-25 (compressed)
+        function rankBadgeKey(level) {
+            if (level === 3) return 'badge_dreadnaught';
+            if (level === 2) return 'badge_fighter';
+            return 'badge_scout';
+        }
+
+        function computeStage(level, subLevel) {
+            // 10 stages per rank, 3 subLevels spread across them
+            const base = (level - 1) * 10;
+            const sub = Math.min(Math.floor(((subLevel - 1) / 3) * 10) + 1, 10);
+            return Math.min(base + sub, 25);
+        }
+
+        function updateRankBadges(level, subLevel) {
+            const container = document.getElementById('hud-rank-badges');
+            if (!container) return;
+            const stage = computeStage(level, subLevel);
+            const key = rankBadgeKey(level);
+            let html = '';
+            for (let i = 0; i < stage; i++) {
+                const opacity = (i < stage - 1) ? 0.6 : 1.0; // Only current badge is full brightness
+                html += `<div style="width:20px;height:20px;opacity:${opacity};">${Sprites[key] || ''}</div>`;
+            }
+            container.innerHTML = html;
+            container.querySelectorAll('svg').forEach(s => {
+                s.setAttribute('width', '20'); s.setAttribute('height', '20');
+            });
         }
 
         function updateUI() {
             const scoreDisplay = document.getElementById('score-display');
-            const waveDisplay = document.getElementById('wave-display');
             const missileBadge = document.getElementById('missile-badge');
             const missileCount = document.getElementById('missile-count');
             const teleportLives = document.getElementById('teleport-lives');
 
             if (scoreDisplay) scoreDisplay.innerText = gameState.score;
-            if (waveDisplay) waveDisplay.innerText = `${gameState.wave} (RANK ${entities.player.level}.${entities.player.subLevel})`;
 
-            // Teleport (Lives) Badges
+            // Rank badges in hud-top-overlay
+            updateRankBadges(entities.player.level, entities.player.subLevel);
+
+            // Teleport (Lives) badges in bottom bar
             if (teleportLives) {
-                const rankMap = { 1: 'badge_scout', 2: 'badge_fighter', 3: 'badge_dreadnaught' };
-                const badgeKey = rankMap[entities.player.level] || 'badge_scout';
+                const badgeKey = rankBadgeKey(entities.player.level);
                 let html = '';
-                // Show up to 5 icons; then maybe just a multiplier if we have tons (unlikely in this game)
                 for (let i = 0; i < Math.min(6, gameState.teleports); i++) {
-                    html += `<div style="width:24px; height:24px; opacity:0.8;">${Sprites[badgeKey]}</div>`;
+                    html += `<div style="width:22px;height:22px;opacity:0.85;">${Sprites[badgeKey] || ''}</div>`;
                 }
                 teleportLives.innerHTML = html;
                 teleportLives.querySelectorAll('svg').forEach(s => {
-                    s.setAttribute('width', '24');
-                    s.setAttribute('height', '24');
+                    s.setAttribute('width', '22'); s.setAttribute('height', '22');
                 });
             }
 
@@ -1928,23 +2063,18 @@
                 if (entities.player.missiles > 0) {
                     missileBadge.innerHTML = Sprites.badge_missile || '';
                     const svg = missileBadge.querySelector('svg');
-                    if (svg) { 
-                        svg.setAttribute('width', '32'); 
-                        svg.setAttribute('height', '32');
-                        svg.style.width = '32px'; 
-                        svg.style.height = '32px'; 
-                    }
+                    if (svg) { svg.setAttribute('width', '32'); svg.setAttribute('height', '32'); }
                 } else {
                     missileBadge.innerHTML = '';
                 }
             }
 
-            // Sync shield meter
+            // Shield meter
             const shieldMeter = document.getElementById('shield-meter');
             if (shieldMeter) {
-                shieldMeter.style.width = `${entities.player.shield}%`;
-                if (entities.player.shield < 30) shieldMeter.style.background = '#FF0000';
-                else if (entities.player.shield < 60) shieldMeter.style.background = '#FFAA00';
+                shieldMeter.style.width = `${entities.player.shields || 100}%`;
+                if ((entities.player.shields || 100) < 30) shieldMeter.style.background = '#FF0000';
+                else if ((entities.player.shields || 100) < 60) shieldMeter.style.background = '#FFAA00';
                 else shieldMeter.style.background = '#00FF66';
             }
         }
@@ -1969,16 +2099,14 @@
             if (!gameState.running && !gameState.paused) return; // ignore before start
             
             gameState.paused = !gameState.paused;
-            
-            // Update Pause UI
-            const pauseBtn = document.getElementById('btn-pause');
-            if (pauseBtn) {
-                pauseBtn.innerHTML = gameState.paused ? 
-                    `<svg viewBox="0 0 100 100"><polygon points="30,20 80,50 30,80" /></svg>` : 
-                    `<svg viewBox="0 0 100 100"><rect x="25" y="20" width="15" height="60"/><rect x="60" y="20" width="15" height="60"/></svg>`;
-            }
 
-            if (!gameState.paused) {
+            // Pause / resume music and audio context
+            if (gameState.paused) {
+                if (bgMusic && !bgMusic.paused) bgMusic.pause();
+                if (audioCtx && audioCtx.state === 'running') audioCtx.suspend();
+            } else {
+                if (bgMusic && bgMusic.paused) bgMusic.play().catch(() => {});
+                if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
                 gameState.lastTime = performance.now();
                 requestAnimationFrame(gameLoop);
             }
@@ -2126,6 +2254,8 @@
             gameState.score = 0;
             gameState.teleports = 3;
             gameState.wave = 1;
+            gameState.paused = false;
+            gameState.ejectPending = false;
             entities.player = new Terran();
             entities.bg = new DesertBG();
             spawnWave();
@@ -2195,24 +2325,24 @@
 
         // UI Buttons
         document.getElementById('btn-start').addEventListener('click', initGame);
-        
-        document.getElementById('btn-settings').addEventListener('click', () => {
+
+        // New SVG HUD icon buttons (replace old side-panel)
+        document.getElementById('hud-btn-playpause').addEventListener('click', togglePause);
+        document.getElementById('hud-btn-settings').addEventListener('click', () => {
+            if (gameState.running && !gameState.paused) togglePause(); // auto-pause
             switchScreen('settings');
         });
 
-        document.getElementById('btn-pause').addEventListener('click', togglePause);
-        document.getElementById('btn-side-settings').addEventListener('click', () => {
-             // In-game settings share the same UI
-             switchScreen('settings');
-        });
-        
         document.getElementById('btn-close-settings').addEventListener('click', () => {
-            if (gameState.running) {
+            // Return to game if active (resume if paused), else landing
+            if (gameState.running || gameState.paused) {
+                if (gameState.paused) togglePause(); // resume
                 switchScreen('game');
             } else {
                 switchScreen('landing');
             }
         });
+
 
         // Fullscreen Toggle
         const btnFullscreen = document.getElementById('btn-fullscreen');
