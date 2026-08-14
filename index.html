@@ -314,8 +314,8 @@
         }
         .hud-icon-btn:hover { opacity: 1; filter: drop-shadow(0 0 8px var(--primary-red)); }
         .hud-icon-btn img { width: 100%; height: 100%; display: block; }
-        #hud-btn-playpause { left: 15px; top: 45%; width: 64px; height: 64px; transform: translateY(-100%); }
-        #hud-btn-settings  { left: 15px; top: 45%; width: 64px; height: 64px; transform: translateY(10%); }
+        #hud-btn-playpause { left: 15px; top: calc(45% + 20px); width: 64px; height: 64px; transform: translateY(-100%); }
+        #hud-btn-settings  { left: 15px; top: calc(45% + 100px); width: 64px; height: 64px; transform: translateY(10%); }
 
         /* Teleport indicator bar */
         #hud-teleport-bar {
@@ -332,23 +332,23 @@
         #hud-teleport-icon img { width: 100%; }
         #teleport-lives { display: flex; gap: 4px; align-items: center; }
 
-        /* HUD TOP rank badge overlay */
         #hud-top-overlay {
             position: absolute;
             top: 0; left: 50%;
             transform: translateX(-50%);
             width: 436px;
-            height: auto;
             z-index: 205;
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: flex-start;
+            justify-content: center;
             pointer-events: none;
-            padding-top: 10px;
+            padding-top: 8px;
+            gap: 4px;
         }
-        #hud-level-label { width: 120px; height: auto; }
-        #hud-rank-badges { display: flex; gap: 4px; flex-wrap: wrap; justify-content: center; margin-top: 4px; }
+        #hud-level-label { width: 100px; height: auto; display: flex; align-items: center; justify-content: center; }
+        #hud-level-label img { width: 100%; height: auto; }
+        #hud-rank-badges { display: flex; gap: 3px; flex-wrap: wrap; justify-content: center; align-items: center; }
 
         /* Pilot Eject — now clickable during eject pending */
         .hud-eject {
@@ -470,10 +470,10 @@
                 <div class="ui-label" id="ui-wave-label"></div>
             </div>
             <div class="ui-block">
-                <div class="ui-label" id="ui-shield-label" style="color:var(--primary-red); font-family:'VientlyFlustern'; font-weight:bold;">POWER</div>
+                <div class="ui-label" id="ui-shield-label" style="color:var(--primary-red); font-family:'VientlyFlustern'; font-weight:bold; font-size:0.95rem; letter-spacing:2px;">POWER</div>
                 <div class="meter-container"><div id="shield-meter" class="meter-fill"></div></div>
                 <div style="display:flex; align-items:center; gap:8px; margin-top:5px;">
-                    <div id="missile-count" style="color:var(--orange); font-weight:bold;">MISSILES: 0</div>
+                    <div id="missile-count" style="color:var(--orange); font-weight:bold; font-family:'VientlyFlustern'; font-size:0.85rem; letter-spacing:1px;">MISSILES: 0</div>
                     <div id="missile-badge"></div>
                 </div>
             </div>
@@ -2025,12 +2025,18 @@
             const key = rankBadgeKey(level);
             let html = '';
             for (let i = 0; i < stage; i++) {
-                const opacity = (i < stage - 1) ? 0.6 : 1.0; // Only current badge is full brightness
-                html += `<div style="width:20px;height:20px;opacity:${opacity};">${Sprites[key] || ''}</div>`;
+                const opacity = (i < stage - 1) ? 0.55 : 1.0;
+                const isCurrent = (i === stage - 1);
+                const size = isCurrent ? 22 : 16; // Current stage badge slightly larger
+                html += `<div style="width:${size}px;height:${size}px;opacity:${opacity};display:flex;align-items:center;justify-content:center;">${Sprites[key] || ''}</div>`;
             }
             container.innerHTML = html;
-            container.querySelectorAll('svg').forEach(s => {
-                s.setAttribute('width', '20'); s.setAttribute('height', '20');
+            container.querySelectorAll('svg').forEach((s, i) => {
+                const isCurrent = (i === stage - 1);
+                const size = isCurrent ? 22 : 16;
+                s.setAttribute('width', size); s.setAttribute('height', size);
+                s.style.width = size + 'px'; s.style.height = size + 'px';
+                s.style.display = 'block';
             });
         }
 
